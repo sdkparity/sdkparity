@@ -1,0 +1,29 @@
+---
+title: "Quickstart"
+description: "Run a local SDK surface comparison with synthetic fixtures."
+---
+
+Install dependencies:
+
+```bash
+bun install
+```
+
+Normalize a synthetic OpenAPI document:
+
+```bash
+bun run sdkparity spec normalize fixtures/synthetic/openapi/base.json --output normalized.json
+```
+
+Extract old and new TypeScript SDK manifests:
+
+```bash
+bun run sdkparity manifest create --language ts --repo fixtures/synthetic/ts-sdk-old --output old.json
+bun run sdkparity manifest create --language ts --repo fixtures/synthetic/ts-sdk-new --output new.json
+```
+
+Compare the SDK surfaces:
+
+```bash
+bun run sdkparity compat diff old.json new.json --format markdown
+```

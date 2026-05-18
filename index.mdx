@@ -1,0 +1,27 @@
+---
+title: "SDK Parity"
+description: "Open-source tools for describing and comparing SDK public surfaces."
+---
+
+SDK Parity turns API SDKs into structured manifests and compares those
+manifests across releases.
+
+Use it when you need a clear answer to:
+
+- Which public methods and models does this SDK expose?
+- Did a generated SDK preserve the previous public surface?
+- Which changes require a major, minor, or patch release?
+
+## Local Tools
+
+```bash
+bun install
+bun run sdkparity spec normalize fixtures/synthetic/openapi/base.json
+```
+
+## Core Artifacts
+
+- SDK surface manifest
+- Compatibility report
+- Normalized OpenAPI operation list
+- Code Mode type surface for agent workflows

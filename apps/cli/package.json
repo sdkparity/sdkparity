@@ -1,0 +1,22 @@
+{
+  "name": "sdkparity",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "bin": {
+    "sdkparity": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun --version"
+  },
+  "dependencies": {
+    "@sdkparity/compat": "file:../../packages/compat",
+    "@sdkparity/core": "file:../../packages/core",
+    "@sdkparity/manifest": "file:../../packages/manifest",
+    "@sdkparity/mcp": "file:../../packages/mcp",
+    "@sdkparity/openapi": "file:../../packages/openapi",
+    "@sdkparity/reports": "file:../../packages/reports"
+  }
+}

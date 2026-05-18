@@ -1,0 +1,14 @@
+---
+title: "Compatibility Commands"
+description: "Compare SDK surface manifests."
+---
+
+```bash
+bun run sdkparity compat diff old.json new.json --format markdown
+```
+
+Use JSON output for automation:
+
+```bash
+bun run sdkparity compat diff old.json new.json --output report.json
+```

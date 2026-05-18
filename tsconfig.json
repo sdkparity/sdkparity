@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/security" },
+    { "path": "./packages/openapi" },
+    { "path": "./packages/manifest" },
+    { "path": "./packages/compat" },
+    { "path": "./packages/reports" },
+    { "path": "./packages/runner-protocol" },
+    { "path": "./packages/mcp" },
+    { "path": "./apps/cli" }
+  ]
+}

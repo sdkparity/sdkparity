@@ -1,0 +1,45 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "SDK Parity",
+  "colors": {
+    "primary": "#0f766e"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Start",
+        "pages": ["index", "quickstart"]
+      },
+      {
+        "group": "Concepts",
+        "pages": [
+          "concepts/sdk-surface-manifest",
+          "concepts/compatibility-diff",
+          "concepts/overlays",
+          "concepts/mcp-and-code-mode"
+        ]
+      },
+      {
+        "group": "CLI",
+        "pages": ["cli/install", "cli/manifest", "cli/compat", "cli/reports"]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/typescript-sdk-parity",
+          "guides/ci-github-actions",
+          "guides/synthetic-fixtures"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": ["reference/manifest-schema", "reference/report-schema"]
+      },
+      {
+        "group": "Troubleshooting",
+        "pages": ["troubleshooting/common-errors"]
+      }
+    ]
+  }
+}

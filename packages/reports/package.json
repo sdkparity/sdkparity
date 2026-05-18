@@ -1,0 +1,18 @@
+{
+  "name": "@sdkparity/reports",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test src"
+  },
+  "dependencies": {
+    "@sdkparity/compat": "file:../compat",
+    "@sdkparity/manifest": "file:../manifest"
+  }
+}

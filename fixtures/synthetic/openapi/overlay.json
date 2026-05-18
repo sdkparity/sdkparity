@@ -1,0 +1,9 @@
+{
+  "version": "0.1",
+  "operations": {
+    "GET /users": {
+      "sdkName": "list",
+      "resource": "users"
+    }
+  }
+}

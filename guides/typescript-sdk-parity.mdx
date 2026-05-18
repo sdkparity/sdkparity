@@ -1,0 +1,12 @@
+---
+title: "TypeScript SDK Parity"
+description: "Compare two TypeScript SDK surfaces."
+---
+
+Use the synthetic fixtures to test the complete local flow:
+
+```bash
+bun run sdkparity manifest create --language ts --repo fixtures/synthetic/ts-sdk-old --output old.json
+bun run sdkparity manifest create --language ts --repo fixtures/synthetic/ts-sdk-new --output new.json
+bun run sdkparity compat diff old.json new.json --format markdown
+```

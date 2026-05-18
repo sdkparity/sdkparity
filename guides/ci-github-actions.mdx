@@ -1,0 +1,13 @@
+---
+title: "CI Checks"
+description: "Run SDK parity checks in CI."
+---
+
+Run the same CLI commands in CI that you run locally:
+
+```bash
+bun install
+bun run build
+bun run test
+bun run sdkparity compat diff old.json new.json --output report.json
+```

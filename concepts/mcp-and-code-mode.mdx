@@ -1,0 +1,14 @@
+---
+title: "MCP And Code Mode"
+description: "Generate compact agent-facing API surfaces."
+---
+
+SDK Parity can emit a compact TypeScript type surface from a normalized OpenAPI
+document.
+
+```bash
+bun run sdkparity mcp generate --spec fixtures/synthetic/openapi/base.json
+```
+
+This gives agents a typed surface to inspect instead of requiring hundreds of
+operation-shaped tools.
