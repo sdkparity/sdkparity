@@ -12,6 +12,7 @@
     { "path": "../../packages/manifest" },
     { "path": "../../packages/compat" },
     { "path": "../../packages/reports" },
-    { "path": "../../packages/mcp" }
+    { "path": "../../packages/mcp" },
+    { "path": "../../packages/runner-protocol" }
   ]
 }

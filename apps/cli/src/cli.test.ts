@@ -14,10 +14,13 @@ const oldPythonSdkPath = join(repoRoot, "fixtures/synthetic/python-sdk-old");
 
 test("prints command help", async () => {
   const result = await runCli(["--help"]);
+  const resultWithEmptyArg = await runCli(["", "help"]);
 
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("sdkparity spec normalize");
+  expect(resultWithEmptyArg.exitCode).toBe(0);
+  expect(resultWithEmptyArg.stdout).toContain("sdkparity run generate");
 });
 
 test("writes to process output by default", async () => {
@@ -60,6 +63,9 @@ test("lints and normalizes OpenAPI specs", async () => {
   const normalize = await runCli(["spec", "normalize", specPath, "--overlay", overlayPath, "--output", outputPath]);
   expect(normalize).toMatchObject({ exitCode: 0, stdout: "", stderr: "" });
   const normalized = JSON.parse(await readFile(outputPath, "utf8"));
+  const flagOnlyOutputPath = join(outputDir, "flag-only-output.json");
+  await expectOk(runCli(["spec", "lint", specPath, "--compact", "--output", flagOnlyOutputPath]));
+  expect(JSON.parse(await readFile(flagOnlyOutputPath, "utf8"))).toMatchObject({ ok: true, operationCount: 3 });
   expect(
     normalized.operations.some(
       (operation: { operationId: string; sdkName: string }) =>

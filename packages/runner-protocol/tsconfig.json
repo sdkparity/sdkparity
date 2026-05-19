@@ -5,5 +5,13 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../compat" },
+    { "path": "../core" },
+    { "path": "../manifest" },
+    { "path": "../mcp" },
+    { "path": "../openapi" },
+    { "path": "../reports" }
+  ]
 }

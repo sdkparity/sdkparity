@@ -15,21 +15,13 @@ import {
 } from "@sdkparity/mcp";
 import {
   generateSdk,
-  generateSdkSnippets,
   loadOpenApiDocument,
   loadOverlayDocument,
   normalizeOpenApiDocument,
   writeGeneratedSdk
 } from "@sdkparity/openapi";
-import {
-  createAgentEvalReport,
-  createAgentReadinessReport,
-  createReleasePlan,
-  renderAgentEvalReportMarkdown,
-  renderAgentReadinessReportMarkdown,
-  renderCompatibilityReportMarkdown,
-  renderReleasePlanMarkdown
-} from "@sdkparity/reports";
+import { renderCompatibilityReportMarkdown } from "@sdkparity/reports";
+import { runLocalParityGeneration } from "@sdkparity/runner-protocol/local-run";
 
 type Args = {
   positionals: string[];
@@ -64,7 +56,7 @@ export async function runCli(rawArgs: string[], io: CliIo = processIo): Promise<
 async function executeCli(args: Args, io: CliIo): Promise<void> {
   const [resource, action] = args.positionals;
 
-  if (!resource || resource === "help" || resource === "--help") {
+  if (!resource || resource === "help") {
     printHelp(io);
     return;
   }
@@ -216,108 +208,27 @@ async function executeCli(args: Args, io: CliIo): Promise<void> {
     const outputDir = getStringFlag(args, "output-dir") ?? "sdkparity-run";
     const languages = parseLanguageList(getStringFlag(args, "languages"));
     const overlayPath = getStringFlag(args, "overlay");
-    const spec = await loadOpenApiDocument(specPath);
-    const overlay = overlayPath ? await loadOverlayDocument(overlayPath) : undefined;
-    const normalized = normalizeOpenApiDocument(spec, overlay);
-    await mkdir(outputDir, { recursive: true });
-    await writeJsonFile(join(outputDir, "normalized-spec.json"), normalized);
-
-    const languageResults = [];
-    const generatedSdks = [];
-    const sdkManifests = [];
-    const sdkSnippets = [];
-    let semverRecommendation: "patch" | "minor" | "major" | "unknown" = "unknown";
+    const packageNames: Partial<Record<SdkparityLanguage, string>> = {};
+    const previousManifestPaths: Partial<Record<SdkparityLanguage, string>> = {};
     for (const language of languages) {
       const packageName = getStringFlag(args, `${language}-package-name`);
-      const sdkDir = join(outputDir, `${language}-sdk`);
-      const generated = generateSdk(normalized, { language, ...(packageName ? { packageName } : {}) });
-      await writeGeneratedSdk(generated, sdkDir);
-      const manifest = await createManifest(language, sdkDir);
-      const manifestPath = join(outputDir, `${language}-manifest.json`);
-      const snippets = generateSdkSnippets(normalized, language, generated.packageName);
-      const snippetsPath = join(outputDir, `${language}-snippets.json`);
-      await writeJsonFile(manifestPath, manifest);
-      await writeJsonFile(snippetsPath, { snippets });
-      generatedSdks.push(generated);
-      sdkManifests.push(manifest);
-      sdkSnippets.push(...snippets);
-
-      const previousPath = getStringFlag(args, `previous-${language}-manifest`);
-      let compatReportPath: string | undefined;
-      if (previousPath) {
-        const previous = sdkSurfaceManifestSchema.parse(await readJsonFile(previousPath));
-        const report = diffManifests(previous, manifest);
-        compatReportPath = join(outputDir, `${language}-compat-report.json`);
-        await writeJsonFile(compatReportPath, report);
-        await writeTextFile(join(outputDir, `${language}-compat-report.md`), renderCompatibilityReportMarkdown(report));
-        semverRecommendation = maxSemverRecommendation(semverRecommendation, report.summary.semverRecommendation);
+      if (packageName) {
+        packageNames[language] = packageName;
       }
-
-      languageResults.push({
-        language,
-        sdkDir,
-        manifestPath,
-        snippetsPath,
-        ...(compatReportPath ? { compatReportPath } : {}),
-        packageName: generated.packageName,
-        hash: generated.hash
-      });
+      const previousPath = getStringFlag(args, `previous-${language}-manifest`);
+      if (previousPath) {
+        previousManifestPaths[language] = previousPath;
+      }
     }
 
-    const mcpManifest = generateMcpManifest(normalized);
-    await writeJsonFile(join(outputDir, "mcp-manifest.json"), mcpManifest);
-    await writeTextFile(join(outputDir, "code-mode-types.d.ts"), mcpManifest.codeModeTypeExport);
-    const codeModeDryRun = executeCodeModeDryRun(normalized, {
-      code: renderSyntheticCodeModeCall(normalized.operations[0]?.sdkName),
-      dryRun: true
-    });
-    const agentEvalReport = createAgentEvalReport({
-      generatedSdks,
-      snippets: sdkSnippets,
-      mcpManifest,
-      codeModeDryRun,
-      spec: normalized
-    });
-    const agentReadinessReport = createAgentReadinessReport({
-      generatedSdks,
-      sdkManifests,
-      snippets: sdkSnippets,
-      mcpManifest,
-      codeModeTypes: mcpManifest.codeModeTypeExport,
-      codeModeDryRun,
-      spec: normalized,
-      agentEvalReport
-    });
-    await writeJsonFile(join(outputDir, "agent-eval-report.json"), agentEvalReport);
-    await writeTextFile(join(outputDir, "agent-eval-report.md"), renderAgentEvalReportMarkdown(agentEvalReport));
-    await writeJsonFile(join(outputDir, "agent-readiness-report.json"), agentReadinessReport);
-    await writeTextFile(join(outputDir, "agent-readiness-report.md"), renderAgentReadinessReportMarkdown(agentReadinessReport));
-
-    const releasePlan = createReleasePlan({
-      runId: `local_${normalized.hash.slice(0, 12)}`,
-      semverRecommendation,
-      dryRuns: languageResults.map((result) => ({
-        language: result.language,
-        packageName: result.packageName,
-        command: result.language === "typescript" ? "npm publish --dry-run" : "python -m build && twine check dist/*",
-        passed: true
-      })),
-      blockers: semverRecommendation === "major" ? ["Major compatibility changes require approval."] : [],
-      approvalRequired: true
-    });
-    await writeJsonFile(join(outputDir, "release-plan.json"), releasePlan);
-    await writeTextFile(join(outputDir, "release-plan.md"), renderReleasePlanMarkdown(releasePlan));
-    const runReport = {
-      ok: true,
+    const runReport = await runLocalParityGeneration({
+      specPath,
       outputDir,
-      operationCount: normalized.operations.length,
-      languages: languageResults,
-      mcpManifestPath: join(outputDir, "mcp-manifest.json"),
-      agentEvalReportPath: join(outputDir, "agent-eval-report.json"),
-      agentReadinessReportPath: join(outputDir, "agent-readiness-report.json"),
-      releasePlanPath: join(outputDir, "release-plan.json")
-    };
-    await writeJsonFile(join(outputDir, "run-report.json"), runReport);
+      languages,
+      packageNames,
+      previousManifestPaths,
+      ...(overlayPath ? { overlayPath } : {})
+    });
     await writeOutput(args, io, runReport);
     return;
   }
@@ -388,31 +299,11 @@ async function writeTextOutput(args: Args, io: CliIo, value: string): Promise<vo
   await writeFile(output, value);
 }
 
-async function writeTextFile(output: string, value: string): Promise<void> {
-  await mkdir(dirname(output), { recursive: true });
-  await writeFile(output, value);
-}
-
 async function createManifest(language: SdkparityLanguage, repoPath: string) {
   if (language === "python") {
     return createPythonManifest({ repoPath });
   }
   return createTypeScriptManifest({ repoPath });
-}
-
-function maxSemverRecommendation(
-  current: "patch" | "minor" | "major" | "unknown",
-  next: "patch" | "minor" | "major" | "unknown"
-): "patch" | "minor" | "major" | "unknown" {
-  const rank = { unknown: 0, patch: 1, minor: 2, major: 3 } as const;
-  return rank[next] > rank[current] ? next : current;
-}
-
-function renderSyntheticCodeModeCall(sdkName: string | undefined): string {
-  if (!sdkName) {
-    return "await api.missingOperation({})";
-  }
-  return `await api.${sdkName}({})`;
 }
 
 function printHelp(io: CliIo): void {

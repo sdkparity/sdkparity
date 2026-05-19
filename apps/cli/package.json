@@ -19,6 +19,7 @@
     "@sdkparity/manifest": "file:../../packages/manifest",
     "@sdkparity/mcp": "file:../../packages/mcp",
     "@sdkparity/openapi": "file:../../packages/openapi",
-    "@sdkparity/reports": "file:../../packages/reports"
+    "@sdkparity/reports": "file:../../packages/reports",
+    "@sdkparity/runner-protocol": "file:../../packages/runner-protocol"
   }
 }

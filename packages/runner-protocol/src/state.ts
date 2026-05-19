@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { generationLanguageSchema } from "./language";
 
 export const runStageSchema = z.enum([
   "queued",
@@ -61,9 +62,6 @@ export const runnerJobSchema = z
   .strict();
 
 export type RunnerJob = z.infer<typeof runnerJobSchema>;
-
-export const generationLanguageSchema = z.enum(["typescript", "python"]);
-export type GenerationLanguage = z.infer<typeof generationLanguageSchema>;
 
 export const generationJobInputSchema = z
   .object({
