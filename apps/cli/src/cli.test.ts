@@ -10,6 +10,7 @@ const specPath = join(repoRoot, "fixtures/synthetic/openapi/base.json");
 const overlayPath = join(repoRoot, "fixtures/synthetic/openapi/overlay.json");
 const oldSdkPath = join(repoRoot, "fixtures/synthetic/ts-sdk-old");
 const newSdkPath = join(repoRoot, "fixtures/synthetic/ts-sdk-new");
+const oldPythonSdkPath = join(repoRoot, "fixtures/synthetic/python-sdk-old");
 
 test("prints command help", async () => {
   const result = await runCli(["--help"]);
@@ -86,13 +87,18 @@ test("generates manifests and compatibility reports", async () => {
   const outputDir = await mkdtemp(join(tmpdir(), "sdkparity-cli-compat-"));
   const oldManifest = join(outputDir, "old.json");
   const newManifest = join(outputDir, "new.json");
+  const pythonManifest = join(outputDir, "python.json");
 
   await expectOk(runCli(["manifest", "create", "--language", "typescript", "--repo", oldSdkPath, "--output", oldManifest]));
   await expectOk(runCli(["manifest", "create", "--language", "ts", "--repo", newSdkPath, "--output", newManifest]));
+  await expectOk(runCli(["manifest", "create", "--language", "python", "--repo", oldPythonSdkPath, "--output", pythonManifest]));
 
   const json = await runCli(["compat", "diff", oldManifest, newManifest]);
   expect(JSON.parse(json.stdout)).toMatchObject({
     summary: { semverRecommendation: "minor" }
+  });
+  expect(JSON.parse(await readFile(pythonManifest, "utf8"))).toMatchObject({
+    package: { language: "python" }
   });
 
   const markdown = await runCli(["compat", "diff", oldManifest, newManifest, "--format", "markdown"]);
@@ -105,6 +111,11 @@ test("generates Code Mode type surfaces", async () => {
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("listUsers");
+
+  const manifest = await runCli(["mcp", "manifest", "--spec", specPath]);
+  expect(JSON.parse(manifest.stdout)).toMatchObject({
+    tools: [expect.objectContaining({ id: "users.workflow" })]
+  });
 });
 
 test("exposes agent schema introspection as JSON", async () => {
@@ -149,11 +160,68 @@ test("runs the local SDK parity workflow", async () => {
   expect(JSON.parse(await readFile(join(outputDir, "manifest.json"), "utf8"))).toHaveProperty("symbols");
 });
 
+test("generates TypeScript and Python SDK parity artifacts end to end", async () => {
+  const outputDir = await mkdtemp(join(tmpdir(), "sdkparity-cli-generate-"));
+  const oldManifest = join(outputDir, "old-ts.json");
+  const oldPythonManifest = join(outputDir, "old-python.json");
+
+  await expectOk(runCli(["manifest", "create", "--language", "ts", "--repo", oldSdkPath, "--output", oldManifest]));
+  await expectOk(
+    runCli(["manifest", "create", "--language", "python", "--repo", oldPythonSdkPath, "--output", oldPythonManifest])
+  );
+
+  const sdkOutputDir = join(outputDir, "single-python-sdk");
+  const sdkResult = await runCli([
+    "sdk",
+    "generate",
+    "--language",
+    "python",
+    "--spec",
+    specPath,
+    "--overlay",
+    overlayPath,
+    "--output-dir",
+    sdkOutputDir
+  ]);
+  expect(JSON.parse(sdkResult.stdout)).toMatchObject({ ok: true, language: "python" });
+  expect(await readFile(join(sdkOutputDir, "sdkparity_client/__init__.py"), "utf8")).toContain("class Client");
+
+  const runOutputDir = join(outputDir, "run");
+  const result = await runCli([
+    "run",
+    "generate",
+    "--spec",
+    specPath,
+    "--overlay",
+    overlayPath,
+    "--languages",
+    "typescript,python",
+    "--previous-typescript-manifest",
+    oldManifest,
+    "--previous-python-manifest",
+    oldPythonManifest,
+    "--output-dir",
+    runOutputDir
+  ]);
+
+  const report = JSON.parse(result.stdout);
+  expect(report).toMatchObject({ ok: true, operationCount: 3 });
+  expect(report.languages).toHaveLength(2);
+  expect(JSON.parse(await readFile(join(runOutputDir, "typescript-manifest.json"), "utf8"))).toMatchObject({
+    package: { language: "typescript" }
+  });
+  expect(JSON.parse(await readFile(join(runOutputDir, "python-manifest.json"), "utf8"))).toMatchObject({
+    package: { language: "python" }
+  });
+  expect(await readFile(join(runOutputDir, "code-mode-types.d.ts"), "utf8")).toContain("list");
+  expect(await readFile(join(runOutputDir, "release-plan.md"), "utf8")).toContain("Package Dry Runs");
+});
+
 test("returns structured errors for invalid commands and missing inputs", async () => {
-  const unsupportedLanguage = await runCli(["manifest", "create", "--language", "python", "--repo", oldSdkPath]);
+  const unsupportedLanguage = await runCli(["manifest", "create", "--language", "ruby", "--repo", oldSdkPath]);
   expect(JSON.parse(unsupportedLanguage.stderr)).toMatchObject({
     code: "unexpected_error",
-    message: "Only TypeScript manifest extraction is implemented in this release."
+    message: expect.stringContaining("Invalid option")
   });
 
   const missingFlag = await runCli(["mcp", "execute", "--spec"]);

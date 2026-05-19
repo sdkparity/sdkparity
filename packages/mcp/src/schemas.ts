@@ -87,3 +87,38 @@ export type AgentCapability = z.infer<typeof agentCapabilitySchema>;
 
 export const agentCapabilityListResultSchema = z.array(agentCapabilitySchema);
 export type AgentCapabilityListResult = z.infer<typeof agentCapabilityListResultSchema>;
+
+export const mcpWorkflowToolSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    description: z.string().min(1),
+    resource: z.string().min(1),
+    operationIds: z.array(z.string().min(1)).min(1),
+    readOnly: z.boolean(),
+    dryRunSupported: z.boolean(),
+    inputSchemaId: z.string().min(1)
+  })
+  .strict();
+
+export type McpWorkflowTool = z.infer<typeof mcpWorkflowToolSchema>;
+
+export const mcpManifestSchema = z
+  .object({
+    version: z.literal("0.1"),
+    title: z.string().min(1),
+    operationCount: z.number().int().nonnegative(),
+    tools: z.array(mcpWorkflowToolSchema),
+    codeModeTypeExport: z.string().min(1),
+    tokenBudget: z
+      .object({
+        directToolCount: z.number().int().nonnegative(),
+        groupedToolCount: z.number().int().nonnegative(),
+        codeModeToolCount: z.literal(2)
+      })
+      .strict(),
+    hash: z.string().min(16)
+  })
+  .strict();
+
+export type McpManifest = z.infer<typeof mcpManifestSchema>;

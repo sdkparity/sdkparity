@@ -16,6 +16,10 @@ test("lists compact agent capability metadata", () => {
         dryRunSupported: true,
         mutatesExternalState: false,
         inputSchemaIds: expect.arrayContaining(["mcp.codeMode.execute.input"])
+      }),
+      expect.objectContaining({
+        id: "mcp.manifest.generate",
+        outputSchemaIds: ["mcp.manifest"]
       })
     ])
   );

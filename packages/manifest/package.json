@@ -5,6 +5,7 @@
   "license": "Apache-2.0",
   "exports": {
     ".": "./src/index.ts",
+    "./extract-python": "./src/extract-python.ts",
     "./extract-typescript": "./src/extract-typescript.ts",
     "./schemas": "./src/schemas.ts",
     "./summary": "./src/summary.ts"

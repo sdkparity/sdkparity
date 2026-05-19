@@ -4,6 +4,7 @@ import {
   agentCapabilityListResultSchema,
   codeModeExecuteInputSchema,
   codeModeExecuteResultSchema,
+  mcpManifestSchema,
   mcpSearchInputSchema,
   mcpSearchResultSchema
 } from "./schemas";
@@ -38,6 +39,11 @@ const registry = {
     title: "Code Mode execute result",
     description: "Dry-run execution plan or hosted execution response.",
     schema: codeModeExecuteResultSchema
+  },
+  "mcp.manifest": {
+    title: "MCP manifest",
+    description: "Grouped workflow tools, Code Mode type export, and token budget metadata.",
+    schema: mcpManifestSchema
   },
   "agent.capability.list.result": {
     title: "Agent capability list result",

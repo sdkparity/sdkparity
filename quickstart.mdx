@@ -1,6 +1,6 @@
 ---
 title: "Quickstart"
-description: "Run a local SDK surface comparison with synthetic fixtures."
+description: "Run local SDK surface and generation checks with synthetic fixtures."
 ---
 
 Install dependencies:
@@ -22,8 +22,24 @@ bun run sdkparity manifest create --language ts --repo fixtures/synthetic/ts-sdk
 bun run sdkparity manifest create --language ts --repo fixtures/synthetic/ts-sdk-new --output new.json
 ```
 
+Extract a Python SDK manifest:
+
+```bash
+bun run sdkparity manifest create --language python --repo fixtures/synthetic/python-sdk-old --output python.json
+```
+
 Compare the SDK surfaces:
 
 ```bash
 bun run sdkparity compat diff old.json new.json --format markdown
+```
+
+Generate a local TypeScript and Python evidence bundle:
+
+```bash
+bun run sdkparity run generate \
+  --spec fixtures/synthetic/openapi/base.json \
+  --overlay fixtures/synthetic/openapi/overlay.json \
+  --languages typescript,python \
+  --output-dir .tmp/sdkparity-run
 ```

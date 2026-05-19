@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { canTransitionRunStage, nextRunStage, runnerJobSchema } from "./state";
+import { canTransitionRunStage, expectedGenerationArtifacts, generationJobInputSchema, nextRunStage, runnerJobSchema } from "./state";
 
 test("validates run stage transitions", () => {
   expect(canTransitionRunStage("queued", "inputs_fetched")).toBe(true);
@@ -15,4 +15,28 @@ test("validates run stage transitions", () => {
       attempt: 1
     }).artifacts
   ).toEqual([]);
+});
+
+test("describes expected TypeScript and Python generation artifacts", () => {
+  const input = generationJobInputSchema.parse({
+    specArtifactId: "art_spec",
+    languages: ["typescript", "python"],
+    previousManifestArtifactIds: { typescript: "art_old_ts" }
+  });
+
+  expect(input.dryRun).toBe(true);
+  expect(expectedGenerationArtifacts(input)).toEqual([
+    "normalized-spec",
+    "mcp-manifest",
+    "code-mode-types",
+    "release-plan",
+    "sdk-archive",
+    "manifest",
+    "docs-snippets",
+    "compatibility-report",
+    "markdown-report",
+    "sdk-archive",
+    "manifest",
+    "docs-snippets"
+  ]);
 });

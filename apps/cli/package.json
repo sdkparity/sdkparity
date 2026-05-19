@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@sdkparity/compat": "file:../../packages/compat",
+    "@sdkparity/config": "file:../../packages/config",
     "@sdkparity/core": "file:../../packages/core",
     "@sdkparity/manifest": "file:../../packages/manifest",
     "@sdkparity/mcp": "file:../../packages/mcp",

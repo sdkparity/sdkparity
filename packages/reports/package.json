@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@sdkparity/compat": "file:../compat",
-    "@sdkparity/manifest": "file:../manifest"
+    "@sdkparity/manifest": "file:../manifest",
+    "zod": "^4.1.13"
   }
 }

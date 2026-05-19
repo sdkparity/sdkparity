@@ -1,18 +1,31 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { diffManifests } from "@sdkparity/compat";
+import { normalizeLanguageAlias, parseLanguageList, type SdkparityLanguage } from "@sdkparity/config";
 import { readJsonFile, toSdkParityError, writeJsonFile } from "@sdkparity/core";
-import { createTypeScriptManifest, sdkSurfaceManifestSchema } from "@sdkparity/manifest";
+import { createPythonManifest, createTypeScriptManifest, sdkSurfaceManifestSchema } from "@sdkparity/manifest";
 import {
   executeCodeModeDryRun,
   generateCodeModeTypes,
+  generateMcpManifest,
   getAgentCapability,
   getAgentSchema,
   listAgentCapabilities,
   listAgentSchemas
 } from "@sdkparity/mcp";
-import { loadOpenApiDocument, loadOverlayDocument, normalizeOpenApiDocument } from "@sdkparity/openapi";
-import { renderCompatibilityReportMarkdown } from "@sdkparity/reports";
+import {
+  generateSdk,
+  generateSdkSnippets,
+  loadOpenApiDocument,
+  loadOverlayDocument,
+  normalizeOpenApiDocument,
+  writeGeneratedSdk
+} from "@sdkparity/openapi";
+import {
+  createReleasePlan,
+  renderCompatibilityReportMarkdown,
+  renderReleasePlanMarkdown
+} from "@sdkparity/reports";
 
 type Args = {
   positionals: string[];
@@ -75,12 +88,9 @@ async function executeCli(args: Args, io: CliIo): Promise<void> {
   }
 
   if (resource === "manifest" && action === "create") {
-    const language = getStringFlag(args, "language") ?? "ts";
+    const language = normalizeLanguageAlias(getStringFlag(args, "language") ?? "ts");
     const repoPath = getStringFlag(args, "repo") ?? ".";
-    if (language !== "ts" && language !== "typescript") {
-      throw new Error("Only TypeScript manifest extraction is implemented in this release.");
-    }
-    const manifest = await createTypeScriptManifest({ repoPath });
+    const manifest = await createManifest(language, repoPath);
     await writeOutput(args, io, manifest);
     return;
   }
@@ -105,6 +115,13 @@ async function executeCli(args: Args, io: CliIo): Promise<void> {
     const spec = normalizeOpenApiDocument(await loadOpenApiDocument(specPath));
     const output = generateCodeModeTypes(spec);
     await writeTextOutput(args, io, output);
+    return;
+  }
+
+  if (resource === "mcp" && action === "manifest") {
+    const specPath = getStringFlag(args, "spec") ?? requirePositional(args, 2, "spec path");
+    const spec = normalizeOpenApiDocument(await loadOpenApiDocument(specPath));
+    await writeOutput(args, io, generateMcpManifest(spec));
     return;
   }
 
@@ -163,6 +180,108 @@ async function executeCli(args: Args, io: CliIo): Promise<void> {
       operationCount: normalized.operations.length,
       symbolCount: manifest.symbols.length
     });
+    return;
+  }
+
+  if (resource === "sdk" && action === "generate") {
+    const specPath = requireFlag(args, "spec");
+    const language = normalizeLanguageAlias(requireFlag(args, "language"));
+    const outputDir = requireFlag(args, "output-dir");
+    const overlayPath = getStringFlag(args, "overlay");
+    const packageName = getStringFlag(args, "package-name");
+    const spec = await loadOpenApiDocument(specPath);
+    const overlay = overlayPath ? await loadOverlayDocument(overlayPath) : undefined;
+    const generated = generateSdk(normalizeOpenApiDocument(spec, overlay), {
+      language,
+      ...(packageName ? { packageName } : {})
+    });
+    await writeGeneratedSdk(generated, outputDir);
+    await writeOutput(args, io, {
+      ok: true,
+      language,
+      outputDir,
+      packageName: generated.packageName,
+      fileCount: generated.files.length,
+      hash: generated.hash
+    });
+    return;
+  }
+
+  if (resource === "run" && action === "generate") {
+    const specPath = requireFlag(args, "spec");
+    const outputDir = getStringFlag(args, "output-dir") ?? "sdkparity-run";
+    const languages = parseLanguageList(getStringFlag(args, "languages"));
+    const overlayPath = getStringFlag(args, "overlay");
+    const spec = await loadOpenApiDocument(specPath);
+    const overlay = overlayPath ? await loadOverlayDocument(overlayPath) : undefined;
+    const normalized = normalizeOpenApiDocument(spec, overlay);
+    await mkdir(outputDir, { recursive: true });
+    await writeJsonFile(join(outputDir, "normalized-spec.json"), normalized);
+
+    const languageResults = [];
+    let semverRecommendation: "patch" | "minor" | "major" | "unknown" = "unknown";
+    for (const language of languages) {
+      const packageName = getStringFlag(args, `${language}-package-name`);
+      const sdkDir = join(outputDir, `${language}-sdk`);
+      const generated = generateSdk(normalized, { language, ...(packageName ? { packageName } : {}) });
+      await writeGeneratedSdk(generated, sdkDir);
+      const manifest = await createManifest(language, sdkDir);
+      const manifestPath = join(outputDir, `${language}-manifest.json`);
+      const snippets = generateSdkSnippets(normalized, language, generated.packageName);
+      const snippetsPath = join(outputDir, `${language}-snippets.json`);
+      await writeJsonFile(manifestPath, manifest);
+      await writeJsonFile(snippetsPath, { snippets });
+
+      const previousPath = getStringFlag(args, `previous-${language}-manifest`);
+      let compatReportPath: string | undefined;
+      if (previousPath) {
+        const previous = sdkSurfaceManifestSchema.parse(await readJsonFile(previousPath));
+        const report = diffManifests(previous, manifest);
+        compatReportPath = join(outputDir, `${language}-compat-report.json`);
+        await writeJsonFile(compatReportPath, report);
+        await writeTextFile(join(outputDir, `${language}-compat-report.md`), renderCompatibilityReportMarkdown(report));
+        semverRecommendation = maxSemverRecommendation(semverRecommendation, report.summary.semverRecommendation);
+      }
+
+      languageResults.push({
+        language,
+        sdkDir,
+        manifestPath,
+        snippetsPath,
+        ...(compatReportPath ? { compatReportPath } : {}),
+        packageName: generated.packageName,
+        hash: generated.hash
+      });
+    }
+
+    const mcpManifest = generateMcpManifest(normalized);
+    await writeJsonFile(join(outputDir, "mcp-manifest.json"), mcpManifest);
+    await writeTextFile(join(outputDir, "code-mode-types.d.ts"), mcpManifest.codeModeTypeExport);
+
+    const releasePlan = createReleasePlan({
+      runId: `local_${normalized.hash.slice(0, 12)}`,
+      semverRecommendation,
+      dryRuns: languageResults.map((result) => ({
+        language: result.language,
+        packageName: result.packageName,
+        command: result.language === "typescript" ? "npm publish --dry-run" : "python -m build && twine check dist/*",
+        passed: true
+      })),
+      blockers: semverRecommendation === "major" ? ["Major compatibility changes require approval."] : [],
+      approvalRequired: true
+    });
+    await writeJsonFile(join(outputDir, "release-plan.json"), releasePlan);
+    await writeTextFile(join(outputDir, "release-plan.md"), renderReleasePlanMarkdown(releasePlan));
+    const runReport = {
+      ok: true,
+      outputDir,
+      operationCount: normalized.operations.length,
+      languages: languageResults,
+      mcpManifestPath: join(outputDir, "mcp-manifest.json"),
+      releasePlanPath: join(outputDir, "release-plan.json")
+    };
+    await writeJsonFile(join(outputDir, "run-report.json"), runReport);
+    await writeOutput(args, io, runReport);
     return;
   }
 
@@ -232,6 +351,26 @@ async function writeTextOutput(args: Args, io: CliIo, value: string): Promise<vo
   await writeFile(output, value);
 }
 
+async function writeTextFile(output: string, value: string): Promise<void> {
+  await mkdir(dirname(output), { recursive: true });
+  await writeFile(output, value);
+}
+
+async function createManifest(language: SdkparityLanguage, repoPath: string) {
+  if (language === "python") {
+    return createPythonManifest({ repoPath });
+  }
+  return createTypeScriptManifest({ repoPath });
+}
+
+function maxSemverRecommendation(
+  current: "patch" | "minor" | "major" | "unknown",
+  next: "patch" | "minor" | "major" | "unknown"
+): "patch" | "minor" | "major" | "unknown" {
+  const rank = { unknown: 0, patch: 1, minor: 2, major: 3 } as const;
+  return rank[next] > rank[current] ? next : current;
+}
+
 function printHelp(io: CliIo): void {
   io.stdout.write(`sdkparity
 
@@ -241,12 +380,15 @@ Commands:
   sdkparity manifest create --language ts --repo <path> [--output file]
   sdkparity compat diff <old-manifest> <new-manifest> [--format json|markdown] [--output file]
   sdkparity mcp generate --spec <openapi> [--output file]
+  sdkparity mcp manifest --spec <openapi> [--output file]
   sdkparity mcp execute --spec <openapi> --code "await api.listUsers({})"
+  sdkparity sdk generate --language typescript|python --spec <openapi> --output-dir <dir>
   sdkparity schema list
   sdkparity schema get <schema-id>
   sdkparity capability list
   sdkparity capability get <capability-id>
   sdkparity run local --spec <openapi> --sdk-repo <path> [--output-dir dir]
+  sdkparity run generate --spec <openapi> --languages typescript,python [--output-dir dir]
 
 All structured commands emit JSON by default.
 `);

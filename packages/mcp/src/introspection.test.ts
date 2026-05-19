@@ -5,6 +5,7 @@ test("lists compact agent schema summaries", () => {
   expect(listAgentSchemas()).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ id: "agent.capability.list.result" }),
+      expect.objectContaining({ id: "mcp.manifest" }),
       expect.objectContaining({ id: "mcp.codeMode.execute.input" }),
       expect.objectContaining({ id: "mcp.codeMode.execute.result" })
     ])

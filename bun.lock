@@ -23,6 +23,7 @@
       },
       "dependencies": {
         "@sdkparity/compat": "file:../../packages/compat",
+        "@sdkparity/config": "file:../../packages/config",
         "@sdkparity/core": "file:../../packages/core",
         "@sdkparity/manifest": "file:../../packages/manifest",
         "@sdkparity/mcp": "file:../../packages/mcp",
@@ -35,6 +36,13 @@
       "version": "0.1.0",
       "dependencies": {
         "@sdkparity/manifest": "file:../manifest",
+        "zod": "^4.1.13",
+      },
+    },
+    "packages/config": {
+      "name": "@sdkparity/config",
+      "version": "0.1.0",
+      "dependencies": {
         "zod": "^4.1.13",
       },
     },
@@ -58,6 +66,7 @@
       "name": "@sdkparity/mcp",
       "version": "0.1.0",
       "dependencies": {
+        "@sdkparity/core": "file:../core",
         "@sdkparity/openapi": "file:../openapi",
         "zod": "^4.1.13",
       },
@@ -77,6 +86,7 @@
       "dependencies": {
         "@sdkparity/compat": "file:../compat",
         "@sdkparity/manifest": "file:../manifest",
+        "zod": "^4.1.13",
       },
     },
     "packages/runner-protocol": {
@@ -292,6 +302,8 @@
     "@radix-ui/rect": ["@radix-ui/rect@1.1.1", "", {}, "sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw=="],
 
     "@sdkparity/compat": ["@sdkparity/compat@workspace:packages/compat"],
+
+    "@sdkparity/config": ["@sdkparity/config@workspace:packages/config"],
 
     "@sdkparity/core": ["@sdkparity/core@workspace:packages/core"],
 
@@ -1837,6 +1849,8 @@
 
     "@sdkparity/manifest/@sdkparity/core": ["@sdkparity/core@file:packages/core", { "dependencies": { "zod": "^4.1.13" } }],
 
+    "@sdkparity/mcp/@sdkparity/core": ["@sdkparity/core@file:packages/core", { "dependencies": { "zod": "^4.1.13" } }],
+
     "@sdkparity/mcp/@sdkparity/openapi": ["@sdkparity/openapi@file:packages/openapi", { "dependencies": { "@sdkparity/core": "file:../core", "yaml": "^2.8.1", "zod": "^4.1.13" } }],
 
     "@sdkparity/openapi/@sdkparity/core": ["@sdkparity/core@file:packages/core", { "dependencies": { "zod": "^4.1.13" } }],
@@ -1965,11 +1979,7 @@
 
     "sdkparity/@sdkparity/manifest": ["@sdkparity/manifest@file:packages/manifest", { "dependencies": { "@sdkparity/core": "file:../core", "typescript": "^5.9.3", "zod": "^4.1.13" } }],
 
-    "sdkparity/@sdkparity/mcp": ["@sdkparity/mcp@file:packages/mcp", { "dependencies": { "@sdkparity/openapi": "file:../openapi", "zod": "^4.1.13" } }],
-
     "sdkparity/@sdkparity/openapi": ["@sdkparity/openapi@file:packages/openapi", { "dependencies": { "@sdkparity/core": "file:../core", "yaml": "^2.8.1", "zod": "^4.1.13" } }],
-
-    "sdkparity/@sdkparity/reports": ["@sdkparity/reports@file:packages/reports", { "dependencies": { "@sdkparity/compat": "file:../compat", "@sdkparity/manifest": "file:../manifest" } }],
 
     "send/debug": ["debug@2.6.9", "", { "dependencies": { "ms": "2.0.0" } }, "sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA=="],
 
@@ -2071,13 +2081,7 @@
 
     "sdkparity/@sdkparity/manifest/@sdkparity/core": ["@sdkparity/core@file:packages/core", {}],
 
-    "sdkparity/@sdkparity/mcp/@sdkparity/openapi": ["@sdkparity/openapi@file:packages/openapi", {}],
-
     "sdkparity/@sdkparity/openapi/@sdkparity/core": ["@sdkparity/core@file:packages/core", {}],
-
-    "sdkparity/@sdkparity/reports/@sdkparity/compat": ["@sdkparity/compat@file:packages/compat", {}],
-
-    "sdkparity/@sdkparity/reports/@sdkparity/manifest": ["@sdkparity/manifest@file:packages/manifest", {}],
 
     "send/debug/ms": ["ms@2.0.0", "", {}, "sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A=="],
 

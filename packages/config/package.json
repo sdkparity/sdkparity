@@ -1,5 +1,5 @@
 {
-  "name": "@sdkparity/mcp",
+  "name": "@sdkparity/config",
   "version": "0.1.0",
   "type": "module",
   "license": "Apache-2.0",
@@ -13,8 +13,6 @@
     "coverage": "bun test src --coverage --coverage-reporter=text"
   },
   "dependencies": {
-    "@sdkparity/core": "file:../core",
-    "@sdkparity/openapi": "file:../openapi",
     "zod": "^4.1.13"
   }
 }

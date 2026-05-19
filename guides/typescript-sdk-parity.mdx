@@ -1,12 +1,21 @@
 ---
-title: "TypeScript SDK Parity"
-description: "Compare two TypeScript SDK surfaces."
+title: "TypeScript And Python SDK Parity"
+description: "Compare and generate supported SDK surfaces."
 ---
 
-Use the synthetic fixtures to test the complete local flow:
+Use the synthetic fixtures to test the local compatibility flow:
 
 ```bash
 bun run sdkparity manifest create --language ts --repo fixtures/synthetic/ts-sdk-old --output old.json
 bun run sdkparity manifest create --language ts --repo fixtures/synthetic/ts-sdk-new --output new.json
 bun run sdkparity compat diff old.json new.json --format markdown
+```
+
+Run the generated SDK evidence pipeline for both supported targets:
+
+```bash
+bun run sdkparity run generate \
+  --spec fixtures/synthetic/openapi/base.json \
+  --languages typescript,python \
+  --output-dir .tmp/sdkparity-run
 ```

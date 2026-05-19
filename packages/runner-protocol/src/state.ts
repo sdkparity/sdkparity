@@ -23,6 +23,10 @@ export const runnerArtifactKindSchema = z.enum([
   "manifest",
   "compatibility-report",
   "markdown-report",
+  "docs-snippets",
+  "mcp-manifest",
+  "code-mode-types",
+  "release-plan",
   "eval-trace",
   "log"
 ]);
@@ -55,6 +59,39 @@ export const runnerJobSchema = z
   .strict();
 
 export type RunnerJob = z.infer<typeof runnerJobSchema>;
+
+export const generationLanguageSchema = z.enum(["typescript", "python"]);
+export type GenerationLanguage = z.infer<typeof generationLanguageSchema>;
+
+export const generationJobInputSchema = z
+  .object({
+    specArtifactId: z.string().min(1),
+    overlayArtifactId: z.string().min(1).optional(),
+    languages: z.array(generationLanguageSchema).min(1),
+    previousManifestArtifactIds: z
+      .object({
+        typescript: z.string().min(1).optional(),
+        python: z.string().min(1).optional()
+      })
+      .strict()
+      .default({}),
+    dryRun: z.boolean().default(true)
+  })
+  .strict();
+
+export type GenerationJobInput = z.infer<typeof generationJobInputSchema>;
+
+export function expectedGenerationArtifacts(input: GenerationJobInput): RunnerArtifactKind[] {
+  const parsed = generationJobInputSchema.parse(input);
+  const artifacts: RunnerArtifactKind[] = ["normalized-spec", "mcp-manifest", "code-mode-types", "release-plan"];
+  for (const language of parsed.languages) {
+    artifacts.push("sdk-archive", "manifest", "docs-snippets");
+    if (parsed.previousManifestArtifactIds[language]) {
+      artifacts.push("compatibility-report", "markdown-report");
+    }
+  }
+  return artifacts;
+}
 
 const allowedTransitions: Record<RunStage, RunStage[]> = {
   queued: ["inputs_fetched", "failed_terminal"],

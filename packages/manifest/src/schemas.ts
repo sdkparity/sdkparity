@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const sdkLanguageSchema = z.enum(["typescript"]);
+export const sdkLanguageSchema = z.enum(["typescript", "python"]);
 export type SdkLanguage = z.infer<typeof sdkLanguageSchema>;
 
 export const symbolKindSchema = z.enum([

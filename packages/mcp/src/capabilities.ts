@@ -82,6 +82,21 @@ const registry = {
     safety: ["Read-only. Credentials stay in the host runtime and are not included in generated types."],
     inspectNext: ["openapi.document"]
   },
+  "mcp.manifest.generate": {
+    id: "mcp.manifest.generate",
+    title: "Generate grouped MCP manifest",
+    description: "Create curated workflow tools plus Code Mode metadata from a normalized API surface.",
+    surfaces: ["library", "cli", "mcp-http"],
+    readOnly: true,
+    dryRunSupported: false,
+    mutatesExternalState: false,
+    inputSchemaIds: ["openapi.document"],
+    outputSchemaIds: ["mcp.manifest"],
+    commands: ["sdkparity mcp manifest --spec <openapi>"],
+    endpoints: [{ method: "POST", path: "/mcp/manifest" }],
+    safety: ["Read-only. Groups operations by resource to avoid one endpoint per tool on large APIs."],
+    inspectNext: ["mcp.manifest"]
+  },
   "mcp.codeMode.execute.dryRun": {
     id: "mcp.codeMode.execute.dryRun",
     title: "Dry-run Code Mode execution",
