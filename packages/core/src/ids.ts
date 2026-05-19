@@ -12,6 +12,10 @@ export function slugifyId(input: string): Id {
     .replace(/^_+|_+$/g, "")
     .slice(0, 127);
 
+  if (!slug) {
+    return "id_unknown";
+  }
+
   const normalized = /^[a-z]/.test(slug) ? slug : `id_${slug}`;
-  return idSchema.parse(normalized || "id_unknown");
+  return idSchema.parse(normalized);
 }

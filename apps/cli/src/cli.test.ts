@@ -1,14 +1,78 @@
 import { expect, test } from "bun:test";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runCli as executeCli } from "./index";
 
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
+const specPath = join(repoRoot, "fixtures/synthetic/openapi/base.json");
+const overlayPath = join(repoRoot, "fixtures/synthetic/openapi/overlay.json");
+const oldSdkPath = join(repoRoot, "fixtures/synthetic/ts-sdk-old");
+const newSdkPath = join(repoRoot, "fixtures/synthetic/ts-sdk-new");
+
+test("prints command help", async () => {
+  const result = await runCli(["--help"]);
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("sdkparity spec normalize");
+});
+
+test("writes to process output by default", async () => {
+  const originalWrite = process.stdout.write;
+  let stdout = "";
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    stdout += String(chunk);
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    expect(await executeCli(["help"])).toBe(0);
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  expect(stdout).toContain("Commands:");
+});
+
+test("lints and normalizes OpenAPI specs", async () => {
+  const outputDir = await mkdtemp(join(tmpdir(), "sdkparity-cli-spec-"));
+  const outputPath = join(outputDir, "normalized.json");
+  const warningSpecPath = join(outputDir, "warning-openapi.json");
+  await writeFile(
+    warningSpecPath,
+    JSON.stringify({
+      openapi: "3.1.0",
+      info: { title: "Warning", version: "1.0.0" },
+      paths: { "/users": { get: { responses: { "200": { description: "OK" } } } } }
+    })
+  );
+
+  const lint = await runCli(["spec", "lint", specPath]);
+  expect(JSON.parse(lint.stdout)).toMatchObject({ ok: true, operationCount: 3 });
+  expect(JSON.parse((await runCli(["spec", "lint", warningSpecPath])).stdout)).toMatchObject({
+    ok: true,
+    diagnostics: [expect.objectContaining({ code: "missing_operation_id" })]
+  });
+
+  const normalize = await runCli(["spec", "normalize", specPath, "--overlay", overlayPath, "--output", outputPath]);
+  expect(normalize).toMatchObject({ exitCode: 0, stdout: "", stderr: "" });
+  const normalized = JSON.parse(await readFile(outputPath, "utf8"));
+  expect(
+    normalized.operations.some(
+      (operation: { operationId: string; sdkName: string }) =>
+        operation.operationId === "listUsers" && operation.sdkName === "list"
+    )
+  ).toBe(true);
+});
 
 test("runs the MCP Code Mode dry-run command end to end", async () => {
   const { stdout } = await runCli([
     "mcp",
     "execute",
     "--spec",
-    "fixtures/synthetic/openapi/base.json",
+    specPath,
     "--code",
     "await api.listUsers({ limit: 10 })"
   ]);
@@ -16,6 +80,31 @@ test("runs the MCP Code Mode dry-run command end to end", async () => {
     ok: true,
     calls: [{ operationId: "listUsers" }]
   });
+});
+
+test("generates manifests and compatibility reports", async () => {
+  const outputDir = await mkdtemp(join(tmpdir(), "sdkparity-cli-compat-"));
+  const oldManifest = join(outputDir, "old.json");
+  const newManifest = join(outputDir, "new.json");
+
+  await expectOk(runCli(["manifest", "create", "--language", "typescript", "--repo", oldSdkPath, "--output", oldManifest]));
+  await expectOk(runCli(["manifest", "create", "--language", "ts", "--repo", newSdkPath, "--output", newManifest]));
+
+  const json = await runCli(["compat", "diff", oldManifest, newManifest]);
+  expect(JSON.parse(json.stdout)).toMatchObject({
+    summary: { semverRecommendation: "minor" }
+  });
+
+  const markdown = await runCli(["compat", "diff", oldManifest, newManifest, "--format", "markdown"]);
+  expect(markdown.stdout).toContain("SDK Compatibility Report");
+});
+
+test("generates Code Mode type surfaces", async () => {
+  const result = await runCli(["mcp", "generate", specPath]);
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("listUsers");
 });
 
 test("exposes agent schema introspection as JSON", async () => {
@@ -45,19 +134,84 @@ test("exposes agent capability discovery as JSON", async () => {
   });
 });
 
-async function runCli(args: string[]) {
-  const proc = Bun.spawn([process.execPath, "apps/cli/src/index.ts", ...args], {
-    cwd: repoRoot,
-    stdout: "pipe",
-    stderr: "pipe"
-  });
-  const [exitCode, stdout, stderr] = await Promise.all([
-    proc.exited,
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text()
-  ]);
+test("runs the local SDK parity workflow", async () => {
+  const outputDir = await mkdtemp(join(tmpdir(), "sdkparity-cli-run-"));
 
-  expect(stderr).toBe("");
-  expect(exitCode).toBe(0);
-  return { stdout };
+  const result = await runCli(["run", "local", "--spec", specPath, "--sdk-repo", oldSdkPath, "--output-dir", outputDir]);
+
+  expect(JSON.parse(result.stdout)).toMatchObject({
+    ok: true,
+    outputDir,
+    operationCount: 3,
+    symbolCount: 5
+  });
+  expect(JSON.parse(await readFile(join(outputDir, "normalized-spec.json"), "utf8"))).toHaveProperty("hash");
+  expect(JSON.parse(await readFile(join(outputDir, "manifest.json"), "utf8"))).toHaveProperty("symbols");
+});
+
+test("returns structured errors for invalid commands and missing inputs", async () => {
+  const unsupportedLanguage = await runCli(["manifest", "create", "--language", "python", "--repo", oldSdkPath]);
+  expect(JSON.parse(unsupportedLanguage.stderr)).toMatchObject({
+    code: "unexpected_error",
+    message: "Only TypeScript manifest extraction is implemented in this release."
+  });
+
+  const missingFlag = await runCli(["mcp", "execute", "--spec"]);
+  expect(JSON.parse(missingFlag.stderr)).toMatchObject({
+    code: "unexpected_error",
+    message: "Missing --spec."
+  });
+
+  const missingPositional = await runCli(["spec", "normalize"]);
+  expect(JSON.parse(missingPositional.stderr)).toMatchObject({
+    code: "unexpected_error",
+    message: "Missing spec path."
+  });
+
+  const missingSchema = await runCli(["schema", "get", "missing"]);
+  expect(JSON.parse(missingSchema.stderr).message).toContain("Unknown schema: missing");
+
+  const missingCapability = await runCli(["capability", "get", "missing"]);
+  expect(JSON.parse(missingCapability.stderr).message).toContain("Unknown capability: missing");
+
+  const unknownCommand = await runCli(["nope"]);
+  expect(JSON.parse(unknownCommand.stderr)).toMatchObject({
+    code: "unexpected_error",
+    message: "Unknown command: nope"
+  });
+
+  for (const result of [
+    unsupportedLanguage,
+    missingFlag,
+    missingPositional,
+    missingSchema,
+    missingCapability,
+    unknownCommand
+  ]) {
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toBe("");
+  }
+});
+
+async function expectOk(resultPromise: Promise<CliResult>): Promise<void> {
+  const result = await resultPromise;
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+}
+
+type CliResult = {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+};
+
+async function runCli(args: string[]) {
+  let stdout = "";
+  let stderr = "";
+  const exitCode = await executeCli(args, {
+    stdout: { write: (value) => (stdout += value) },
+    stderr: { write: (value) => (stderr += value) }
+  });
+
+  return { stdout, stderr, exitCode };
 }

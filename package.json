@@ -17,7 +17,7 @@
     "coverage": "turbo run coverage",
     "docs:dev": "cd . && mint dev",
     "docs:check": "mint broken-links && mint validate",
-    "sdkparity": "bun apps/cli/src/index.ts"
+    "sdkparity": "bun apps/cli/src/bin.ts"
   },
   "devDependencies": {
     "turbo": "^2.6.3",

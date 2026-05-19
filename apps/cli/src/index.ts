@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { diffManifests } from "@sdkparity/compat";
@@ -20,12 +19,36 @@ type Args = {
   flags: Map<string, string | true>;
 };
 
-async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
+type WritableOutput = {
+  write(value: string): unknown;
+};
+
+type CliIo = {
+  stdout: WritableOutput;
+  stderr: WritableOutput;
+};
+
+const processIo: CliIo = {
+  stdout: process.stdout,
+  stderr: process.stderr
+};
+
+export async function runCli(rawArgs: string[], io: CliIo = processIo): Promise<number> {
+  try {
+    await executeCli(parseArgs(rawArgs), io);
+    return 0;
+  } catch (error) {
+    const sdkError = toSdkParityError(error);
+    io.stderr.write(`${JSON.stringify(sdkError.toJSON(), null, 2)}\n`);
+    return 1;
+  }
+}
+
+async function executeCli(args: Args, io: CliIo): Promise<void> {
   const [resource, action] = args.positionals;
 
   if (!resource || resource === "help" || resource === "--help") {
-    printHelp();
+    printHelp(io);
     return;
   }
 
@@ -33,7 +56,7 @@ async function main(): Promise<void> {
     const source = requirePositional(args, 2, "spec path");
     const spec = await loadOpenApiDocument(source);
     const normalized = normalizeOpenApiDocument(spec);
-    await writeOutput(args, {
+    await writeOutput(args, io, {
       ok: normalized.diagnostics.every((diagnostic) => diagnostic.severity !== "error"),
       diagnostics: normalized.diagnostics,
       operationCount: normalized.operations.length
@@ -47,7 +70,7 @@ async function main(): Promise<void> {
     const spec = await loadOpenApiDocument(source);
     const overlay = overlayPath ? await loadOverlayDocument(overlayPath) : undefined;
     const normalized = normalizeOpenApiDocument(spec, overlay);
-    await writeOutput(args, normalized);
+    await writeOutput(args, io, normalized);
     return;
   }
 
@@ -58,7 +81,7 @@ async function main(): Promise<void> {
       throw new Error("Only TypeScript manifest extraction is implemented in this release.");
     }
     const manifest = await createTypeScriptManifest({ repoPath });
-    await writeOutput(args, manifest);
+    await writeOutput(args, io, manifest);
     return;
   }
 
@@ -70,9 +93,9 @@ async function main(): Promise<void> {
     const report = diffManifests(oldManifest, newManifest);
     const format = getStringFlag(args, "format") ?? "json";
     if (format === "markdown") {
-      await writeTextOutput(args, renderCompatibilityReportMarkdown(report));
+      await writeTextOutput(args, io, renderCompatibilityReportMarkdown(report));
     } else {
-      await writeOutput(args, report);
+      await writeOutput(args, io, report);
     }
     return;
   }
@@ -81,7 +104,7 @@ async function main(): Promise<void> {
     const specPath = getStringFlag(args, "spec") ?? requirePositional(args, 2, "spec path");
     const spec = normalizeOpenApiDocument(await loadOpenApiDocument(specPath));
     const output = generateCodeModeTypes(spec);
-    await writeTextOutput(args, output);
+    await writeTextOutput(args, io, output);
     return;
   }
 
@@ -89,12 +112,12 @@ async function main(): Promise<void> {
     const specPath = requireFlag(args, "spec");
     const code = requireFlag(args, "code");
     const spec = normalizeOpenApiDocument(await loadOpenApiDocument(specPath));
-    await writeOutput(args, executeCodeModeDryRun(spec, { code, dryRun: true }));
+    await writeOutput(args, io, executeCodeModeDryRun(spec, { code, dryRun: true }));
     return;
   }
 
   if (resource === "schema" && action === "list") {
-    await writeOutput(args, { schemas: listAgentSchemas() });
+    await writeOutput(args, io, { schemas: listAgentSchemas() });
     return;
   }
 
@@ -104,12 +127,12 @@ async function main(): Promise<void> {
     if (!schema) {
       throw new Error(`Unknown schema: ${schemaId}. Run "sdkparity schema list" to inspect available schemas.`);
     }
-    await writeOutput(args, schema);
+    await writeOutput(args, io, schema);
     return;
   }
 
   if (resource === "capability" && action === "list") {
-    await writeOutput(args, { capabilities: listAgentCapabilities() });
+    await writeOutput(args, io, { capabilities: listAgentCapabilities() });
     return;
   }
 
@@ -121,7 +144,7 @@ async function main(): Promise<void> {
         `Unknown capability: ${capabilityId}. Run "sdkparity capability list" to inspect available capabilities.`
       );
     }
-    await writeOutput(args, capability);
+    await writeOutput(args, io, capability);
     return;
   }
 
@@ -134,7 +157,7 @@ async function main(): Promise<void> {
     await mkdir(outputDir, { recursive: true });
     await writeJsonFile(join(outputDir, "normalized-spec.json"), normalized);
     await writeJsonFile(join(outputDir, "manifest.json"), manifest);
-    await writeOutput(args, {
+    await writeOutput(args, io, {
       ok: true,
       outputDir,
       operationCount: normalized.operations.length,
@@ -194,14 +217,14 @@ function getStringFlag(args: Args, flag: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-async function writeOutput(args: Args, value: unknown): Promise<void> {
-  await writeTextOutput(args, `${JSON.stringify(value, null, 2)}\n`);
+async function writeOutput(args: Args, io: CliIo, value: unknown): Promise<void> {
+  await writeTextOutput(args, io, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-async function writeTextOutput(args: Args, value: string): Promise<void> {
+async function writeTextOutput(args: Args, io: CliIo, value: string): Promise<void> {
   const output = getStringFlag(args, "output");
   if (!output) {
-    process.stdout.write(value);
+    io.stdout.write(value);
     return;
   }
 
@@ -209,8 +232,8 @@ async function writeTextOutput(args: Args, value: string): Promise<void> {
   await writeFile(output, value);
 }
 
-function printHelp(): void {
-  process.stdout.write(`sdkparity
+function printHelp(io: CliIo): void {
+  io.stdout.write(`sdkparity
 
 Commands:
   sdkparity spec lint <openapi>
@@ -228,9 +251,3 @@ Commands:
 All structured commands emit JSON by default.
 `);
 }
-
-main().catch((error) => {
-  const sdkError = toSdkParityError(error);
-  process.stderr.write(`${JSON.stringify(sdkError.toJSON(), null, 2)}\n`);
-  process.exitCode = 1;
-});

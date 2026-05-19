@@ -168,10 +168,7 @@ function isExported(node: ts.Node): boolean {
   );
 }
 
-function isPublicClassMember(node: ts.ClassElement): boolean {
-  if (!ts.canHaveModifiers(node)) {
-    return true;
-  }
+function isPublicClassMember(node: ts.MethodDeclaration): boolean {
   const modifiers = ts.getModifiers(node) ?? [];
   return !modifiers.some(
     (modifier) =>

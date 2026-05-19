@@ -39,6 +39,11 @@ test("normalizes overlays, request metadata, auth scopes, and invalid shapes", (
               required: false,
               schema: { $ref: "#/components/schemas/Limit" }
             },
+            {
+              name: "cursor",
+              in: "query",
+              schema: false
+            },
             "invalid",
             { name: "missing-location" }
           ],
@@ -110,6 +115,11 @@ test("normalizes overlays, request metadata, auth scopes, and invalid shapes", (
       in: "query",
       required: false,
       schemaRef: "#/components/schemas/Limit"
+    },
+    {
+      name: "cursor",
+      in: "query",
+      required: false
     }
   ]);
   expect(normalized.operations.find((operation) => operation.id === "GET /")?.resource).toBe("root");
