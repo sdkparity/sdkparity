@@ -29,6 +29,7 @@ test("describes expected TypeScript and Python generation artifacts", () => {
     "normalized-spec",
     "mcp-manifest",
     "code-mode-types",
+    "agent-readiness-report",
     "release-plan",
     "sdk-archive",
     "manifest",

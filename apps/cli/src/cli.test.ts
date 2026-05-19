@@ -214,6 +214,11 @@ test("generates TypeScript and Python SDK parity artifacts end to end", async ()
     package: { language: "python" }
   });
   expect(await readFile(join(runOutputDir, "code-mode-types.d.ts"), "utf8")).toContain("list");
+  expect(JSON.parse(await readFile(join(runOutputDir, "agent-readiness-report.json"), "utf8"))).toMatchObject({
+    status: "pass",
+    surfaces: expect.arrayContaining([expect.objectContaining({ id: "code-mode", status: "pass" })])
+  });
+  expect(await readFile(join(runOutputDir, "agent-readiness-report.md"), "utf8")).toContain("Agent Readiness Report");
   expect(await readFile(join(runOutputDir, "release-plan.md"), "utf8")).toContain("Package Dry Runs");
 });
 

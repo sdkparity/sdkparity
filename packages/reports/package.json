@@ -14,7 +14,10 @@
   },
   "dependencies": {
     "@sdkparity/compat": "file:../compat",
+    "@sdkparity/core": "file:../core",
     "@sdkparity/manifest": "file:../manifest",
+    "@sdkparity/mcp": "file:../mcp",
+    "@sdkparity/openapi": "file:../openapi",
     "zod": "^4.1.13"
   }
 }

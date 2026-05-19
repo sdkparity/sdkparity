@@ -22,7 +22,9 @@ import {
   writeGeneratedSdk
 } from "@sdkparity/openapi";
 import {
+  createAgentReadinessReport,
   createReleasePlan,
+  renderAgentReadinessReportMarkdown,
   renderCompatibilityReportMarkdown,
   renderReleasePlanMarkdown
 } from "@sdkparity/reports";
@@ -219,6 +221,9 @@ async function executeCli(args: Args, io: CliIo): Promise<void> {
     await writeJsonFile(join(outputDir, "normalized-spec.json"), normalized);
 
     const languageResults = [];
+    const generatedSdks = [];
+    const sdkManifests = [];
+    const sdkSnippets = [];
     let semverRecommendation: "patch" | "minor" | "major" | "unknown" = "unknown";
     for (const language of languages) {
       const packageName = getStringFlag(args, `${language}-package-name`);
@@ -231,6 +236,9 @@ async function executeCli(args: Args, io: CliIo): Promise<void> {
       const snippetsPath = join(outputDir, `${language}-snippets.json`);
       await writeJsonFile(manifestPath, manifest);
       await writeJsonFile(snippetsPath, { snippets });
+      generatedSdks.push(generated);
+      sdkManifests.push(manifest);
+      sdkSnippets.push(...snippets);
 
       const previousPath = getStringFlag(args, `previous-${language}-manifest`);
       let compatReportPath: string | undefined;
@@ -257,6 +265,20 @@ async function executeCli(args: Args, io: CliIo): Promise<void> {
     const mcpManifest = generateMcpManifest(normalized);
     await writeJsonFile(join(outputDir, "mcp-manifest.json"), mcpManifest);
     await writeTextFile(join(outputDir, "code-mode-types.d.ts"), mcpManifest.codeModeTypeExport);
+    const codeModeDryRun = executeCodeModeDryRun(normalized, {
+      code: renderSyntheticCodeModeCall(normalized.operations[0]?.sdkName),
+      dryRun: true
+    });
+    const agentReadinessReport = createAgentReadinessReport({
+      generatedSdks,
+      sdkManifests,
+      snippets: sdkSnippets,
+      mcpManifest,
+      codeModeTypes: mcpManifest.codeModeTypeExport,
+      codeModeDryRun
+    });
+    await writeJsonFile(join(outputDir, "agent-readiness-report.json"), agentReadinessReport);
+    await writeTextFile(join(outputDir, "agent-readiness-report.md"), renderAgentReadinessReportMarkdown(agentReadinessReport));
 
     const releasePlan = createReleasePlan({
       runId: `local_${normalized.hash.slice(0, 12)}`,
@@ -278,6 +300,7 @@ async function executeCli(args: Args, io: CliIo): Promise<void> {
       operationCount: normalized.operations.length,
       languages: languageResults,
       mcpManifestPath: join(outputDir, "mcp-manifest.json"),
+      agentReadinessReportPath: join(outputDir, "agent-readiness-report.json"),
       releasePlanPath: join(outputDir, "release-plan.json")
     };
     await writeJsonFile(join(outputDir, "run-report.json"), runReport);
@@ -371,6 +394,13 @@ function maxSemverRecommendation(
   return rank[next] > rank[current] ? next : current;
 }
 
+function renderSyntheticCodeModeCall(sdkName: string | undefined): string {
+  if (!sdkName) {
+    return "await api.missingOperation({})";
+  }
+  return `await api.${sdkName}({})`;
+}
+
 function printHelp(io: CliIo): void {
   io.stdout.write(`sdkparity
 
@@ -389,6 +419,7 @@ Commands:
   sdkparity capability get <capability-id>
   sdkparity run local --spec <openapi> --sdk-repo <path> [--output-dir dir]
   sdkparity run generate --spec <openapi> --languages typescript,python [--output-dir dir]
+    Writes SDKs, manifests, snippets, MCP metadata, Code Mode typings, agent-readiness reports, and release plans.
 
 All structured commands emit JSON by default.
 `);

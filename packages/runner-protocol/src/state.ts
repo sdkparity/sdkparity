@@ -26,6 +26,7 @@ export const runnerArtifactKindSchema = z.enum([
   "docs-snippets",
   "mcp-manifest",
   "code-mode-types",
+  "agent-readiness-report",
   "release-plan",
   "eval-trace",
   "log"
@@ -83,7 +84,13 @@ export type GenerationJobInput = z.infer<typeof generationJobInputSchema>;
 
 export function expectedGenerationArtifacts(input: GenerationJobInput): RunnerArtifactKind[] {
   const parsed = generationJobInputSchema.parse(input);
-  const artifacts: RunnerArtifactKind[] = ["normalized-spec", "mcp-manifest", "code-mode-types", "release-plan"];
+  const artifacts: RunnerArtifactKind[] = [
+    "normalized-spec",
+    "mcp-manifest",
+    "code-mode-types",
+    "agent-readiness-report",
+    "release-plan"
+  ];
   for (const language of parsed.languages) {
     artifacts.push("sdk-archive", "manifest", "docs-snippets");
     if (parsed.previousManifestArtifactIds[language]) {
