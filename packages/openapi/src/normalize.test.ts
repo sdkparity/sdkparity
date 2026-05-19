@@ -23,6 +23,15 @@ test("normalizes operations and emits missing operationId diagnostics", () => {
 });
 
 test("normalizes overlays, request metadata, auth scopes, and invalid shapes", () => {
+  const usersOverlay = {
+    modelName: "User",
+    pagination: {
+      type: "cursor",
+      cursorParam: "cursor",
+      nextCursorField: "next_cursor"
+    },
+    notes: "Use account-scoped list semantics."
+  } as const;
   const doc = {
     openapi: "3.1.0",
     info: {},
@@ -88,6 +97,7 @@ test("normalizes overlays, request metadata, auth scopes, and invalid shapes", (
         operationId: "usersList",
         sdkName: "list",
         resource: "accounts",
+        ...usersOverlay,
         authScopes: ["custom:scope"],
         sdkVisibility: "internal",
         mcpVisibility: "hidden"
@@ -107,7 +117,8 @@ test("normalizes overlays, request metadata, auth scopes, and invalid shapes", (
     responseStatusCodes: ["200", "404"],
     authScopes: ["custom:scope"],
     sdkVisibility: "internal",
-    mcpVisibility: "hidden"
+    mcpVisibility: "hidden",
+    ...usersOverlay
   });
   expect(users?.parameters).toEqual([
     {

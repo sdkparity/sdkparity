@@ -25,8 +25,11 @@ export function applyOperationOverlay(
     operationId: entry.operationId ?? operation.operationId,
     sdkName: entry.sdkName ?? operation.sdkName,
     resource: entry.resource ?? operation.resource,
+    modelName: entry.modelName ?? operation.modelName,
+    pagination: entry.pagination ?? operation.pagination,
     authScopes: entry.authScopes ?? operation.authScopes,
     sdkVisibility: entry.sdkVisibility ?? operation.sdkVisibility,
-    mcpVisibility: entry.mcpVisibility ?? operation.mcpVisibility
+    mcpVisibility: entry.mcpVisibility ?? operation.mcpVisibility,
+    notes: entry.notes ?? operation.notes
   };
 }
