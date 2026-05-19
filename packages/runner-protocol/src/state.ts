@@ -26,6 +26,7 @@ export const runnerArtifactKindSchema = z.enum([
   "docs-snippets",
   "mcp-manifest",
   "code-mode-types",
+  "agent-eval-report",
   "agent-readiness-report",
   "release-plan",
   "eval-trace",
@@ -88,6 +89,7 @@ export function expectedGenerationArtifacts(input: GenerationJobInput): RunnerAr
     "normalized-spec",
     "mcp-manifest",
     "code-mode-types",
+    "agent-eval-report",
     "agent-readiness-report",
     "release-plan"
   ];

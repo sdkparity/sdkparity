@@ -22,8 +22,10 @@ import {
   writeGeneratedSdk
 } from "@sdkparity/openapi";
 import {
+  createAgentEvalReport,
   createAgentReadinessReport,
   createReleasePlan,
+  renderAgentEvalReportMarkdown,
   renderAgentReadinessReportMarkdown,
   renderCompatibilityReportMarkdown,
   renderReleasePlanMarkdown
@@ -269,14 +271,25 @@ async function executeCli(args: Args, io: CliIo): Promise<void> {
       code: renderSyntheticCodeModeCall(normalized.operations[0]?.sdkName),
       dryRun: true
     });
+    const agentEvalReport = createAgentEvalReport({
+      generatedSdks,
+      snippets: sdkSnippets,
+      mcpManifest,
+      codeModeDryRun,
+      spec: normalized
+    });
     const agentReadinessReport = createAgentReadinessReport({
       generatedSdks,
       sdkManifests,
       snippets: sdkSnippets,
       mcpManifest,
       codeModeTypes: mcpManifest.codeModeTypeExport,
-      codeModeDryRun
+      codeModeDryRun,
+      spec: normalized,
+      agentEvalReport
     });
+    await writeJsonFile(join(outputDir, "agent-eval-report.json"), agentEvalReport);
+    await writeTextFile(join(outputDir, "agent-eval-report.md"), renderAgentEvalReportMarkdown(agentEvalReport));
     await writeJsonFile(join(outputDir, "agent-readiness-report.json"), agentReadinessReport);
     await writeTextFile(join(outputDir, "agent-readiness-report.md"), renderAgentReadinessReportMarkdown(agentReadinessReport));
 
@@ -300,6 +313,7 @@ async function executeCli(args: Args, io: CliIo): Promise<void> {
       operationCount: normalized.operations.length,
       languages: languageResults,
       mcpManifestPath: join(outputDir, "mcp-manifest.json"),
+      agentEvalReportPath: join(outputDir, "agent-eval-report.json"),
       agentReadinessReportPath: join(outputDir, "agent-readiness-report.json"),
       releasePlanPath: join(outputDir, "release-plan.json")
     };
@@ -419,7 +433,7 @@ Commands:
   sdkparity capability get <capability-id>
   sdkparity run local --spec <openapi> --sdk-repo <path> [--output-dir dir]
   sdkparity run generate --spec <openapi> --languages typescript,python [--output-dir dir]
-    Writes SDKs, manifests, snippets, MCP metadata, Code Mode typings, agent-readiness reports, and release plans.
+    Writes SDKs, manifests, snippets, MCP metadata, Code Mode typings, agent eval/readiness reports, and release plans.
 
 All structured commands emit JSON by default.
 `);

@@ -1,8 +1,9 @@
 import { contentHash } from "@sdkparity/core";
 import type { SdkSurfaceManifest } from "@sdkparity/manifest";
 import type { CodeModeExecuteResult, McpManifest } from "@sdkparity/mcp";
-import type { GeneratedSdk, GeneratedSnippet, SdkGenerationLanguage } from "@sdkparity/openapi";
+import type { GeneratedSdk, GeneratedSnippet, NormalizedSpec, SdkGenerationLanguage } from "@sdkparity/openapi";
 import { z } from "zod";
+import { agentEvalReportSchema, createAgentEvalReport, type AgentEvalReport } from "./agent-evals";
 
 const readinessStatusSchema = z.enum(["pass", "warn", "fail"]);
 const readinessSeveritySchema = z.enum(["info", "warning", "error"]);
@@ -21,7 +22,7 @@ export type AgentReadinessCheck = z.infer<typeof agentReadinessCheckSchema>;
 
 export const agentReadinessSurfaceSchema = z
   .object({
-    id: z.enum(["sdk", "docs", "mcp", "code-mode"]),
+    id: z.enum(["sdk", "docs", "mcp", "code-mode", "evals"]),
     title: z.string().min(1),
     status: readinessStatusSchema,
     score: z.number().int().min(0).max(100),
@@ -37,6 +38,7 @@ export const agentReadinessReportSchema = z
     status: readinessStatusSchema,
     score: z.number().int().min(0).max(100),
     surfaces: z.array(agentReadinessSurfaceSchema).min(1),
+    evalReport: agentEvalReportSchema,
     blockers: z.array(z.string()),
     warnings: z.array(z.string()),
     hash: z.string().min(16)
@@ -52,14 +54,26 @@ export type CreateAgentReadinessReportInput = {
   mcpManifest: McpManifest;
   codeModeTypes: string;
   codeModeDryRun: CodeModeExecuteResult;
+  spec?: NormalizedSpec;
+  agentEvalReport?: AgentEvalReport;
 };
 
 export function createAgentReadinessReport(input: CreateAgentReadinessReportInput): AgentReadinessReport {
+  const evalReport =
+    input.agentEvalReport ??
+    createAgentEvalReport({
+      generatedSdks: input.generatedSdks,
+      snippets: input.snippets,
+      mcpManifest: input.mcpManifest,
+      codeModeDryRun: input.codeModeDryRun,
+      ...(input.spec ? { spec: input.spec } : {})
+    });
   const surfaces = [
     createSurface("sdk", "SDK", sdkChecks(input.generatedSdks, input.sdkManifests ?? [])),
     createSurface("docs", "Docs snippets", docsChecks(input.generatedSdks, input.snippets)),
     createSurface("mcp", "MCP", mcpChecks(input.mcpManifest)),
-    createSurface("code-mode", "Code Mode", codeModeChecks(input.codeModeTypes, input.codeModeDryRun))
+    createSurface("code-mode", "Code Mode", codeModeChecks(input.codeModeTypes, input.codeModeDryRun)),
+    createSurface("evals", "Agent evals", evalChecks(evalReport))
   ];
   const failedChecks = surfaces.flatMap((surface) => surface.checks.filter((check) => !check.passed));
   const withoutHash = {
@@ -67,6 +81,7 @@ export function createAgentReadinessReport(input: CreateAgentReadinessReportInpu
     status: statusForChecks(failedChecks),
     score: average(surfaces.map((surface) => surface.score)),
     surfaces,
+    evalReport,
     blockers: failedChecks.filter((check) => check.severity === "error").map((check) => check.message),
     warnings: failedChecks.filter((check) => check.severity === "warning").map((check) => check.message)
   };
@@ -83,6 +98,7 @@ export function renderAgentReadinessReportMarkdown(report: AgentReadinessReport)
     "",
     `Status: **${report.status}**`,
     `Score: **${report.score}%**`,
+    `Eval tasks: **${report.evalReport.passedCount}/${report.evalReport.taskCount} passed**`,
     `Hash: \`${report.hash}\``,
     "",
     "| Surface | Score | Status |",
@@ -244,6 +260,39 @@ function codeModeChecks(types: string, dryRun: CodeModeExecuteResult): AgentRead
       "Code Mode dry-run returned no validation diagnostics.",
       "warning",
       "Resolve Code Mode diagnostics before release."
+    )
+  ];
+}
+
+function evalChecks(report: AgentEvalReport): AgentReadinessCheck[] {
+  return [
+    check(
+      "eval.tasks.present",
+      report.taskCount > 0,
+      "Synthetic agent eval tasks were generated.",
+      "error",
+      "Generate an eval task suite for SDK, docs, MCP, and Code Mode surfaces."
+    ),
+    check(
+      "eval.tasks.success",
+      report.status === "pass",
+      "Synthetic agent eval tasks passed.",
+      "error",
+      "Inspect the agent eval report and repair the first failed task."
+    ),
+    check(
+      "eval.payload.quality",
+      report.metrics.invalidPayloadRate === 0 && report.metrics.wrongToolRate === 0,
+      "Agent evals report no invalid payload or wrong-tool failures.",
+      "warning",
+      "Tighten schemas, tool grouping, or Code Mode validation."
+    ),
+    check(
+      "eval.docs.lookup",
+      report.metrics.missingDocRate === 0,
+      "Agent evals found required docs snippets.",
+      "warning",
+      "Regenerate docs snippets for uncovered operations."
     )
   ];
 }

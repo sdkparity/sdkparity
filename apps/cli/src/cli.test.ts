@@ -216,10 +216,52 @@ test("generates TypeScript and Python SDK parity artifacts end to end", async ()
   expect(await readFile(join(runOutputDir, "code-mode-types.d.ts"), "utf8")).toContain("list");
   expect(JSON.parse(await readFile(join(runOutputDir, "agent-readiness-report.json"), "utf8"))).toMatchObject({
     status: "pass",
-    surfaces: expect.arrayContaining([expect.objectContaining({ id: "code-mode", status: "pass" })])
+    surfaces: expect.arrayContaining([
+      expect.objectContaining({ id: "code-mode", status: "pass" }),
+      expect.objectContaining({ id: "evals", status: "pass" })
+    ])
   });
+  expect(JSON.parse(await readFile(join(runOutputDir, "agent-eval-report.json"), "utf8"))).toMatchObject({
+    status: "pass",
+    metrics: { invalidPayloadRate: 0, wrongToolRate: 0 },
+    results: expect.arrayContaining([expect.objectContaining({ task: expect.objectContaining({ kind: "code-mode-dry-run" }) })])
+  });
+  expect(await readFile(join(runOutputDir, "agent-eval-report.md"), "utf8")).toContain("Agent Eval Report");
   expect(await readFile(join(runOutputDir, "agent-readiness-report.md"), "utf8")).toContain("Agent Readiness Report");
   expect(await readFile(join(runOutputDir, "release-plan.md"), "utf8")).toContain("Package Dry Runs");
+});
+
+test("records Code Mode eval evidence when a generated spec has no operations", async () => {
+  const outputDir = await mkdtemp(join(tmpdir(), "sdkparity-cli-empty-generate-"));
+  const emptySpecPath = join(outputDir, "empty-openapi.json");
+  const runOutputDir = join(outputDir, "run");
+  await writeFile(
+    emptySpecPath,
+    JSON.stringify({
+      openapi: "3.1.0",
+      info: { title: "Empty API", version: "1.0.0" },
+      paths: {}
+    })
+  );
+
+  const result = await runCli([
+    "run",
+    "generate",
+    "--spec",
+    emptySpecPath,
+    "--languages",
+    "typescript",
+    "--output-dir",
+    runOutputDir
+  ]);
+
+  expect(JSON.parse(result.stdout)).toMatchObject({ ok: true, operationCount: 0 });
+  expect(JSON.parse(await readFile(join(runOutputDir, "agent-eval-report.json"), "utf8"))).toMatchObject({
+    status: "fail",
+    results: expect.arrayContaining([
+      expect.objectContaining({ task: expect.objectContaining({ kind: "code-mode-dry-run" }) })
+    ])
+  });
 });
 
 test("returns structured errors for invalid commands and missing inputs", async () => {

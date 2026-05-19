@@ -1,0 +1,21 @@
+# SDK Parity
+
+SDK Parity provides public, local tooling for SDK surface manifests,
+compatibility reports, OpenAPI normalization, generated SDK artifacts, MCP
+metadata, Code Mode typings, and agent-readiness evidence.
+
+Useful public entry points:
+
+- Quickstart: /quickstart
+- SDK surface manifests: /concepts/sdk-surface-manifest
+- Compatibility reports: /concepts/compatibility-diff
+- OpenAPI overlays: /concepts/overlays
+- MCP and Code Mode concepts: /concepts/mcp-and-code-mode
+- CLI reference: /cli/install, /cli/manifest, /cli/compat, /cli/reports,
+  /cli/agents
+- Report schemas: /reference/report-schema
+
+Machine-readable artifacts from `sdkparity run generate` include
+`normalized-spec.json`, language SDKs, SDK manifests, snippets,
+`mcp-manifest.json`, `code-mode-types.d.ts`, `agent-eval-report.json`,
+`agent-readiness-report.json`, and `release-plan.json`.

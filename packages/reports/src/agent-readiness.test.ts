@@ -22,6 +22,7 @@ test("creates and renders passing agent readiness evidence", () => {
     warnings: []
   });
   expect(report.hash).toHaveLength(64);
+  expect(report.evalReport.status).toBe("pass");
   expect(renderAgentReadinessReportMarkdown(report)).toContain("Agent Readiness Report");
   expect(renderAgentReadinessReportMarkdown(report)).toContain("| MCP | 100% | pass |");
 });
@@ -59,7 +60,8 @@ test("reports actionable blockers and warnings for incomplete agent surfaces", (
       "SDK manifests have no extraction errors.",
       "Docs snippets were generated.",
       "MCP manifest includes public operations.",
-      "Code Mode TypeScript API surface was generated."
+      "Code Mode TypeScript API surface was generated.",
+      "Synthetic agent eval tasks passed."
     ])
   );
   expect(report.warnings).toContain("MCP token budget favors grouped tools over direct tool sprawl.");
@@ -80,6 +82,7 @@ test("returns warning status when only non-blocking readiness checks fail", () =
   });
 
   expect(report.status).toBe("warn");
+  expect(report.evalReport.status).toBe("pass");
   expect(report.blockers).toEqual([]);
   expect(report.warnings).toEqual(
     expect.arrayContaining([
