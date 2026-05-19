@@ -40,6 +40,26 @@ test("writes to process output by default", async () => {
   expect(stdout).toContain("Commands:");
 });
 
+test("writes default process errors as structured JSON", async () => {
+  const originalWrite = process.stderr.write;
+  let stderr = "";
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    stderr += String(chunk);
+    return true;
+  }) as typeof process.stderr.write;
+
+  try {
+    expect(await executeCli(["nope"])).toBe(1);
+  } finally {
+    process.stderr.write = originalWrite;
+  }
+
+  expect(JSON.parse(stderr)).toMatchObject({
+    code: "unexpected_error",
+    message: "Unknown command: nope"
+  });
+});
+
 test("lints and normalizes OpenAPI specs", async () => {
   const outputDir = await mkdtemp(join(tmpdir(), "sdkparity-cli-spec-"));
   const outputPath = join(outputDir, "normalized.json");
