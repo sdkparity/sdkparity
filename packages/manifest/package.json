@@ -4,7 +4,10 @@
   "type": "module",
   "license": "Apache-2.0",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./extract-typescript": "./src/extract-typescript.ts",
+    "./schemas": "./src/schemas.ts",
+    "./summary": "./src/summary.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
