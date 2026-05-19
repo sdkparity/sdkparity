@@ -52,3 +52,38 @@ export const codeModeExecuteResultSchema = z
   .strict();
 
 export type CodeModeExecuteResult = z.infer<typeof codeModeExecuteResultSchema>;
+
+export const agentCapabilitySurfaceSchema = z.enum(["library", "cli", "mcp-http"]);
+export type AgentCapabilitySurface = z.infer<typeof agentCapabilitySurfaceSchema>;
+
+export const agentCapabilityEndpointSchema = z
+  .object({
+    method: z.enum(["GET", "POST"]),
+    path: z.string().min(1)
+  })
+  .strict();
+
+export type AgentCapabilityEndpoint = z.infer<typeof agentCapabilityEndpointSchema>;
+
+export const agentCapabilitySchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    description: z.string().min(1),
+    surfaces: z.array(agentCapabilitySurfaceSchema).min(1),
+    readOnly: z.boolean(),
+    dryRunSupported: z.boolean(),
+    mutatesExternalState: z.boolean(),
+    inputSchemaIds: z.array(z.string()),
+    outputSchemaIds: z.array(z.string()),
+    commands: z.array(z.string()).default([]),
+    endpoints: z.array(agentCapabilityEndpointSchema).default([]),
+    safety: z.array(z.string()).default([]),
+    inspectNext: z.array(z.string()).default([])
+  })
+  .strict();
+
+export type AgentCapability = z.infer<typeof agentCapabilitySchema>;
+
+export const agentCapabilityListResultSchema = z.array(agentCapabilitySchema);
+export type AgentCapabilityListResult = z.infer<typeof agentCapabilityListResultSchema>;

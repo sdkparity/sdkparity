@@ -12,3 +12,13 @@ bun run sdkparity mcp generate --spec fixtures/synthetic/openapi/base.json
 
 This gives agents a typed surface to inspect instead of requiring hundreds of
 operation-shaped tools.
+
+Agents can also discover the current agent-facing capabilities before choosing
+CLI, library, or MCP HTTP surfaces:
+
+```bash
+bun run sdkparity capability list
+```
+
+Capability records point agents to the schemas they should inspect next, whether
+the surface is read-only, and whether dry-run behavior is available.

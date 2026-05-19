@@ -1,0 +1,31 @@
+---
+title: "Agent Commands"
+description: "Discover agent-facing capabilities and runtime schemas."
+---
+
+List agent-facing capabilities:
+
+```bash
+bun run sdkparity capability list
+```
+
+Inspect one capability:
+
+```bash
+bun run sdkparity capability get mcp.codeMode.execute.dryRun
+```
+
+List runtime schemas:
+
+```bash
+bun run sdkparity schema list
+```
+
+Inspect a schema:
+
+```bash
+bun run sdkparity schema get mcp.codeMode.execute.input
+```
+
+Capability output is compact JSON and includes surface choices, schema IDs,
+dry-run support, mutation flags, commands, endpoints, and safety notes.

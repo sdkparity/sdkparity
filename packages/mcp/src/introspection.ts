@@ -1,6 +1,7 @@
 import { normalizedSpecSchema, openApiDocumentSchema } from "@sdkparity/openapi";
 import { z } from "zod";
 import {
+  agentCapabilityListResultSchema,
   codeModeExecuteInputSchema,
   codeModeExecuteResultSchema,
   mcpSearchInputSchema,
@@ -37,6 +38,11 @@ const registry = {
     title: "Code Mode execute result",
     description: "Dry-run execution plan or hosted execution response.",
     schema: codeModeExecuteResultSchema
+  },
+  "agent.capability.list.result": {
+    title: "Agent capability list result",
+    description: "Compact capability metadata for choosing CLI, library, or MCP HTTP surfaces.",
+    schema: agentCapabilityListResultSchema
   }
 } as const;
 

@@ -4,7 +4,14 @@ import { dirname, join } from "node:path";
 import { diffManifests } from "@sdkparity/compat";
 import { readJsonFile, toSdkParityError, writeJsonFile } from "@sdkparity/core";
 import { createTypeScriptManifest, sdkSurfaceManifestSchema } from "@sdkparity/manifest";
-import { executeCodeModeDryRun, generateCodeModeTypes, getAgentSchema, listAgentSchemas } from "@sdkparity/mcp";
+import {
+  executeCodeModeDryRun,
+  generateCodeModeTypes,
+  getAgentCapability,
+  getAgentSchema,
+  listAgentCapabilities,
+  listAgentSchemas
+} from "@sdkparity/mcp";
 import { loadOpenApiDocument, loadOverlayDocument, normalizeOpenApiDocument } from "@sdkparity/openapi";
 import { renderCompatibilityReportMarkdown } from "@sdkparity/reports";
 
@@ -98,6 +105,23 @@ async function main(): Promise<void> {
       throw new Error(`Unknown schema: ${schemaId}. Run "sdkparity schema list" to inspect available schemas.`);
     }
     await writeOutput(args, schema);
+    return;
+  }
+
+  if (resource === "capability" && action === "list") {
+    await writeOutput(args, { capabilities: listAgentCapabilities() });
+    return;
+  }
+
+  if (resource === "capability" && action === "get") {
+    const capabilityId = requirePositional(args, 2, "capability id");
+    const capability = getAgentCapability(capabilityId);
+    if (!capability) {
+      throw new Error(
+        `Unknown capability: ${capabilityId}. Run "sdkparity capability list" to inspect available capabilities.`
+      );
+    }
+    await writeOutput(args, capability);
     return;
   }
 
@@ -197,6 +221,8 @@ Commands:
   sdkparity mcp execute --spec <openapi> --code "await api.listUsers({})"
   sdkparity schema list
   sdkparity schema get <schema-id>
+  sdkparity capability list
+  sdkparity capability get <capability-id>
   sdkparity run local --spec <openapi> --sdk-repo <path> [--output-dir dir]
 
 All structured commands emit JSON by default.

@@ -22,7 +22,7 @@
       },
       {
         "group": "CLI",
-        "pages": ["cli/install", "cli/manifest", "cli/compat", "cli/reports"]
+        "pages": ["cli/install", "cli/manifest", "cli/compat", "cli/reports", "cli/agents"]
       },
       {
         "group": "Guides",

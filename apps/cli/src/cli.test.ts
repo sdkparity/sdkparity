@@ -31,6 +31,20 @@ test("exposes agent schema introspection as JSON", async () => {
   });
 });
 
+test("exposes agent capability discovery as JSON", async () => {
+  const list = await runCli(["capability", "list"]);
+  expect(JSON.parse(list.stdout).capabilities).toEqual(
+    expect.arrayContaining([expect.objectContaining({ id: "mcp.codeMode.execute.dryRun" })])
+  );
+
+  const capability = await runCli(["capability", "get", "mcp.codeMode.execute.dryRun"]);
+  expect(JSON.parse(capability.stdout)).toMatchObject({
+    id: "mcp.codeMode.execute.dryRun",
+    dryRunSupported: true,
+    mutatesExternalState: false
+  });
+});
+
 async function runCli(args: string[]) {
   const proc = Bun.spawn([process.execPath, "apps/cli/src/index.ts", ...args], {
     cwd: repoRoot,
