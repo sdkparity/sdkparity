@@ -18,6 +18,9 @@ test("normalizes operations and emits missing operationId diagnostics", () => {
 
   const normalized = normalizeOpenApiDocument(doc);
   expect(normalized.operations[0]?.operationId).toBe("get_users");
+  expect(normalized.operations[0]?.modelName).toBeUndefined();
+  expect(normalized.operations[0]?.pagination).toBeUndefined();
+  expect(normalized.operations[0]?.notes).toBeUndefined();
   expect(normalized.diagnostics[0]?.code).toBe("missing_operation_id");
   expect(normalized.hash).toHaveLength(64);
 });
