@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { generateCodeModeTypes, searchOperations } from "./code-mode";
+import { executeCodeModeDryRun, generateCodeModeTypes, searchOperations } from "./code-mode";
 import type { NormalizedSpec } from "@sdkparity/openapi";
 
 const spec: NormalizedSpec = {
@@ -31,4 +31,47 @@ const spec: NormalizedSpec = {
 test("searches operations and emits Code Mode types", () => {
   expect(searchOperations(spec, { query: "users", limit: 10 })[0]?.operationId).toBe("listUsers");
   expect(generateCodeModeTypes(spec)).toContain("listUsers");
+  expect(
+    generateCodeModeTypes({
+      ...spec,
+      operations: [{ ...spec.operations[0]!, summary: "Do not close */ comment" }]
+    })
+  ).toContain("Do not close * / comment");
+});
+
+test("creates a strict Code Mode dry-run plan", () => {
+  const result = executeCodeModeDryRun(spec, {
+    code: "await api.listUsers({ limit: 10 })",
+    dryRun: true
+  });
+
+  expect(result.ok).toBe(true);
+  expect(result.calls[0]).toMatchObject({ operationId: "listUsers", dryRun: true });
+});
+
+test("reports empty plans and supports execute-by-operation-id filters", () => {
+  expect(executeCodeModeDryRun(spec, { code: "console.log('noop')", dryRun: true })).toMatchObject({
+    ok: false,
+    diagnostics: [{ code: "no_operation_calls_detected" }]
+  });
+
+  expect(
+    executeCodeModeDryRun(spec, {
+      code: "await execute('listUsers')",
+      dryRun: false,
+      allowedOperationIds: ["listUsers"]
+    })
+  ).toMatchObject({
+    ok: true,
+    dryRun: false,
+    output: "Execution is delegated to the hosted sandbox in production."
+  });
+
+  expect(
+    executeCodeModeDryRun(spec, {
+      code: "await client.listUsers({})",
+      dryRun: true,
+      allowedOperationIds: ["notAllowed"]
+    }).calls
+  ).toEqual([]);
 });

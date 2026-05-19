@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { diffManifests } from "@sdkparity/compat";
 import { readJsonFile, toSdkParityError, writeJsonFile } from "@sdkparity/core";
 import { createTypeScriptManifest, sdkSurfaceManifestSchema } from "@sdkparity/manifest";
-import { generateCodeModeTypes } from "@sdkparity/mcp";
+import { executeCodeModeDryRun, generateCodeModeTypes } from "@sdkparity/mcp";
 import { loadOpenApiDocument, loadOverlayDocument, normalizeOpenApiDocument } from "@sdkparity/openapi";
 import { renderCompatibilityReportMarkdown } from "@sdkparity/reports";
 
@@ -75,6 +75,14 @@ async function main(): Promise<void> {
     const spec = normalizeOpenApiDocument(await loadOpenApiDocument(specPath));
     const output = generateCodeModeTypes(spec);
     await writeTextOutput(args, output);
+    return;
+  }
+
+  if (resource === "mcp" && action === "execute") {
+    const specPath = requireFlag(args, "spec");
+    const code = requireFlag(args, "code");
+    const spec = normalizeOpenApiDocument(await loadOpenApiDocument(specPath));
+    await writeOutput(args, executeCodeModeDryRun(spec, { code, dryRun: true }));
     return;
   }
 
@@ -171,6 +179,7 @@ Commands:
   sdkparity manifest create --language ts --repo <path> [--output file]
   sdkparity compat diff <old-manifest> <new-manifest> [--format json|markdown] [--output file]
   sdkparity mcp generate --spec <openapi> [--output file]
+  sdkparity mcp execute --spec <openapi> --code "await api.listUsers({})"
   sdkparity run local --spec <openapi> --sdk-repo <path> [--output-dir dir]
 
 All structured commands emit JSON by default.

@@ -17,6 +17,45 @@ export const runStageSchema = z.enum([
 
 export type RunStage = z.infer<typeof runStageSchema>;
 
+export const runnerArtifactKindSchema = z.enum([
+  "normalized-spec",
+  "sdk-archive",
+  "manifest",
+  "compatibility-report",
+  "markdown-report",
+  "eval-trace",
+  "log"
+]);
+
+export type RunnerArtifactKind = z.infer<typeof runnerArtifactKindSchema>;
+
+export const runnerArtifactSchema = z
+  .object({
+    id: z.string(),
+    kind: runnerArtifactKindSchema,
+    contentHash: z.string().min(16),
+    contentType: z.string(),
+    uri: z.string(),
+    createdAt: z.string()
+  })
+  .strict();
+
+export type RunnerArtifact = z.infer<typeof runnerArtifactSchema>;
+
+export const runnerJobSchema = z
+  .object({
+    id: z.string(),
+    runId: z.string(),
+    projectId: z.string(),
+    stage: runStageSchema,
+    idempotencyKey: z.string().min(8),
+    attempt: z.number().int().min(1),
+    artifacts: z.array(runnerArtifactSchema).default([])
+  })
+  .strict();
+
+export type RunnerJob = z.infer<typeof runnerJobSchema>;
+
 const allowedTransitions: Record<RunStage, RunStage[]> = {
   queued: ["inputs_fetched", "failed_terminal"],
   inputs_fetched: ["spec_normalized", "failed_recoverable", "failed_terminal"],
@@ -34,4 +73,10 @@ const allowedTransitions: Record<RunStage, RunStage[]> = {
 
 export function canTransitionRunStage(from: RunStage, to: RunStage): boolean {
   return allowedTransitions[from].includes(to);
+}
+
+export function nextRunStage(stage: RunStage): RunStage | undefined {
+  return allowedTransitions[stage].find(
+    (candidate) => candidate !== "failed_recoverable" && candidate !== "failed_terminal"
+  );
 }

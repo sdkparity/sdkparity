@@ -3,12 +3,7 @@ import { basename, join, relative } from "node:path";
 import ts from "typescript";
 import { contentHash, readJsonFile } from "@sdkparity/core";
 import { sdkSurfaceManifestSchema } from "./schemas";
-import type {
-  ManifestSymbol,
-  PackageMetadata,
-  SdkSurfaceManifest,
-  SdkSurfaceManifestDiagnostic
-} from "./schemas";
+import type { ManifestSymbol, PackageMetadata, SdkSurfaceManifest } from "./schemas";
 
 export type CreateTypeScriptManifestOptions = {
   repoPath: string;
@@ -33,30 +28,20 @@ export async function createTypeScriptManifest(
   };
 
   const files = await discoverTypeScriptSourceFiles(rootDir);
-  const diagnostics: SdkSurfaceManifestDiagnostic[] = [];
   const symbols: ManifestSymbol[] = [];
 
   for (const filePath of files) {
     const sourceText = await readFile(filePath, "utf8");
     const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true);
     const sourceFileName = relative(rootDir, filePath);
-    try {
-      symbols.push(...extractSourceFileSymbols(sourceFile, sourceFileName));
-    } catch (error) {
-      diagnostics.push({
-        code: "typescript_extract_failed",
-        message: error instanceof Error ? error.message : String(error),
-        severity: "error",
-        sourceFile: sourceFileName
-      });
-    }
+    symbols.push(...extractSourceFileSymbols(sourceFile, sourceFileName));
   }
 
   const manifestWithoutHash = {
     version: "0.1" as const,
     package: metadata,
     symbols: symbols.sort((a, b) => a.id.localeCompare(b.id)),
-    diagnostics
+    diagnostics: []
   };
 
   return sdkSurfaceManifestSchema.parse({
