@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { diffManifests } from "@sdkparity/compat";
 import { readJsonFile, toSdkParityError, writeJsonFile } from "@sdkparity/core";
 import { createTypeScriptManifest, sdkSurfaceManifestSchema } from "@sdkparity/manifest";
-import { executeCodeModeDryRun, generateCodeModeTypes } from "@sdkparity/mcp";
+import { executeCodeModeDryRun, generateCodeModeTypes, getAgentSchema, listAgentSchemas } from "@sdkparity/mcp";
 import { loadOpenApiDocument, loadOverlayDocument, normalizeOpenApiDocument } from "@sdkparity/openapi";
 import { renderCompatibilityReportMarkdown } from "@sdkparity/reports";
 
@@ -83,6 +83,21 @@ async function main(): Promise<void> {
     const code = requireFlag(args, "code");
     const spec = normalizeOpenApiDocument(await loadOpenApiDocument(specPath));
     await writeOutput(args, executeCodeModeDryRun(spec, { code, dryRun: true }));
+    return;
+  }
+
+  if (resource === "schema" && action === "list") {
+    await writeOutput(args, { schemas: listAgentSchemas() });
+    return;
+  }
+
+  if (resource === "schema" && action === "get") {
+    const schemaId = requirePositional(args, 2, "schema id");
+    const schema = getAgentSchema(schemaId);
+    if (!schema) {
+      throw new Error(`Unknown schema: ${schemaId}. Run "sdkparity schema list" to inspect available schemas.`);
+    }
+    await writeOutput(args, schema);
     return;
   }
 
@@ -180,6 +195,8 @@ Commands:
   sdkparity compat diff <old-manifest> <new-manifest> [--format json|markdown] [--output file]
   sdkparity mcp generate --spec <openapi> [--output file]
   sdkparity mcp execute --spec <openapi> --code "await api.listUsers({})"
+  sdkparity schema list
+  sdkparity schema get <schema-id>
   sdkparity run local --spec <openapi> --sdk-repo <path> [--output-dir dir]
 
 All structured commands emit JSON by default.
