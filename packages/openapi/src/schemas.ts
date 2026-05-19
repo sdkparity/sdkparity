@@ -30,19 +30,21 @@ export type OpenApiDocument = z.infer<typeof openApiDocumentSchema>;
 
 export const sdkVisibilitySchema = z.enum(["public", "internal", "hidden"]);
 
+const operationPaginationSchema = z
+  .object({
+    type: z.enum(["none", "cursor", "offset", "page"]),
+    cursorParam: z.string().optional(),
+    nextCursorField: z.string().optional()
+  })
+  .strict();
+
 export const operationOverlaySchema = z
   .object({
     operationId: z.string().optional(),
     sdkName: z.string().optional(),
     resource: z.string().optional(),
     modelName: z.string().optional(),
-    pagination: z
-      .object({
-        type: z.enum(["none", "cursor", "offset", "page"]),
-        cursorParam: z.string().optional(),
-        nextCursorField: z.string().optional()
-      })
-      .optional(),
+    pagination: operationPaginationSchema.optional(),
     authScopes: z.array(z.string()).optional(),
     sdkVisibility: sdkVisibilitySchema.optional(),
     mcpVisibility: sdkVisibilitySchema.optional(),
@@ -80,6 +82,8 @@ export const normalizedOperationSchema = z
     operationId: z.string(),
     sdkName: z.string(),
     resource: z.string(),
+    modelName: z.string().optional(),
+    pagination: operationPaginationSchema.optional(),
     summary: z.string().optional(),
     description: z.string().optional(),
     tags: z.array(z.string()),
@@ -89,6 +93,7 @@ export const normalizedOperationSchema = z
     authScopes: z.array(z.string()),
     sdkVisibility: sdkVisibilitySchema,
     mcpVisibility: sdkVisibilitySchema,
+    notes: z.string().optional(),
     sourcePointer: z.string()
   })
   .strict();

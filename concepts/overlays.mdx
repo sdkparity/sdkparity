@@ -12,8 +12,19 @@ editing the source OpenAPI document.
   "operations": {
     "GET /users": {
       "sdkName": "list",
-      "resource": "users"
+      "resource": "users",
+      "modelName": "User",
+      "pagination": {
+        "type": "cursor",
+        "cursorParam": "cursor",
+        "nextCursorField": "next_cursor"
+      },
+      "notes": "Use the account-scoped list operation in SDK examples."
     }
   }
 }
 ```
+
+Overlay-only metadata fields are applied during normalization, so downstream
+SDK, report, and agent tooling can consume the same operation metadata from the
+normalized spec.
