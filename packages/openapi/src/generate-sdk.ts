@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { contentHash } from "@sdkparity/core";
 import { z } from "zod";
-import type { NormalizedOperation, NormalizedSpec } from "./schemas";
+import type { NormalizedOperation, NormalizedSpec } from "./schemas.js";
 
 export const sdkGenerationLanguageSchema = z.enum(["typescript", "python"]);
 export type SdkGenerationLanguage = z.infer<typeof sdkGenerationLanguageSchema>;

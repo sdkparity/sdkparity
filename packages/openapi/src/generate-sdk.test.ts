@@ -9,9 +9,9 @@ import {
   generateSdkSnippets,
   generateTypeScriptSdk,
   writeGeneratedSdk
-} from "./generate-sdk";
-import { normalizeOpenApiDocument } from "./normalize";
-import type { OpenApiDocument } from "./schemas";
+} from "./generate-sdk.js";
+import { normalizeOpenApiDocument } from "./normalize.js";
+import type { OpenApiDocument } from "./schemas.js";
 
 const spec = normalizeOpenApiDocument({
   openapi: "3.1.0",

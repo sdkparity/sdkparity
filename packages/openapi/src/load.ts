@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import YAML from "yaml";
 import { SdkParityError } from "@sdkparity/core";
-import { openApiDocumentSchema, overlayDocumentSchema } from "./schemas";
-import type { OpenApiDocument, OverlayDocument } from "./schemas";
+import { openApiDocumentSchema, overlayDocumentSchema } from "./schemas.js";
+import type { OpenApiDocument, OverlayDocument } from "./schemas.js";
 
 export async function loadOpenApiDocument(source: string): Promise<OpenApiDocument> {
   const raw = await loadText(source);

@@ -1,6 +1,6 @@
 import { contentHash, slugifyId } from "@sdkparity/core";
-import { applyOperationOverlay } from "./overlay";
-import { httpMethodSchema, normalizedSpecSchema } from "./schemas";
+import { applyOperationOverlay } from "./overlay.js";
+import { httpMethodSchema, normalizedSpecSchema } from "./schemas.js";
 import type {
   HttpMethod,
   NormalizedOperation,
@@ -9,7 +9,7 @@ import type {
   NormalizedSpecDiagnostic,
   OpenApiDocument,
   OverlayDocument
-} from "./schemas";
+} from "./schemas.js";
 
 const HTTP_METHODS = new Set(httpMethodSchema.options);
 
@@ -85,7 +85,7 @@ export function normalizeOpenApiDocument(
           parameters: normalizeParameters(operationObject.parameters),
           requestBodyContentTypes: normalizeRequestBodyContentTypes(operationObject.requestBody),
           responseStatusCodes: normalizeResponseStatusCodes(operationObject.responses),
-          authScopes: normalizeAuthScopes(operationObject.security),
+          authScopes: normalizeAuthScopes(operationObject.security ?? document.security),
           sdkVisibility: "public",
           mcpVisibility: "public",
           sourcePointer: `/paths/${escapePointer(path)}/${method}`
@@ -163,6 +163,9 @@ function normalizeAuthScopes(raw: unknown): string[] {
   for (const requirement of raw) {
     if (!requirement || typeof requirement !== "object") {
       continue;
+    }
+    if (Object.keys(requirement as Record<string, unknown>).length === 0) {
+      return [];
     }
     for (const [scheme, value] of Object.entries(requirement as Record<string, unknown>)) {
       if (Array.isArray(value) && value.length > 0) {

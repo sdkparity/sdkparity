@@ -1,5 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { SdkParityError } from "./errors";
+import { SdkParityError } from "./errors.js";
 
 export async function readJsonFile<T>(filePath: string): Promise<T> {
   try {

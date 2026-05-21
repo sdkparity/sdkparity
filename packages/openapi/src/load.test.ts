@@ -3,7 +3,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { SdkParityError } from "@sdkparity/core";
-import { loadOpenApiDocument, loadOverlayDocument } from "./load";
+import { loadOpenApiDocument, loadOverlayDocument } from "./load.js";
 
 const originalFetch = globalThis.fetch;
 

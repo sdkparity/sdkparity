@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { normalizeOpenApiDocument } from "./normalize";
-import type { OpenApiDocument } from "./schemas";
+import { normalizeOpenApiDocument } from "./normalize.js";
+import type { OpenApiDocument } from "./schemas.js";
 
 test("normalizes operations and emits missing operationId diagnostics", () => {
   const doc = {
@@ -38,6 +38,7 @@ test("normalizes overlays, request metadata, auth scopes, and invalid shapes", (
   const doc = {
     openapi: "3.1.0",
     info: {},
+    security: [{ apiKey: [] }],
     paths: {
       "/users": {
         get: {
@@ -75,7 +76,18 @@ test("normalizes overlays, request metadata, auth scopes, and invalid shapes", (
         parameters: []
       },
       "/health": {
-        get: false
+        get: {
+          operationId: "getHealth",
+          security: [],
+          responses: {}
+        }
+      },
+      "/optional": {
+        get: {
+          operationId: "getOptional",
+          security: [{}, { apiKey: [] }],
+          responses: {}
+        }
       },
       "/": {
         get: {
@@ -137,12 +149,14 @@ test("normalizes overlays, request metadata, auth scopes, and invalid shapes", (
     }
   ]);
   expect(normalized.operations.find((operation) => operation.id === "GET /")?.resource).toBe("root");
+  expect(normalized.operations.find((operation) => operation.id === "PUT /users")?.authScopes).toEqual(["apiKey"]);
+  expect(normalized.operations.find((operation) => operation.id === "GET /health")?.authScopes).toEqual([]);
+  expect(normalized.operations.find((operation) => operation.id === "GET /optional")?.authScopes).toEqual([]);
   expect(normalized.operations.find((operation) => operation.id === "GET /widgets")?.sdkName).toBe(
     "listWidgets"
   );
   expect(normalized.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
     "duplicate_operation_id",
-    "invalid_operation",
     "invalid_path_item"
   ]);
 });

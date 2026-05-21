@@ -1,4 +1,4 @@
-import type { NormalizedOperation, OverlayDocument } from "./schemas";
+import type { NormalizedOperation, OverlayDocument } from "./schemas.js";
 
 export function overlayKeyForOperation(operation: NormalizedOperation): string {
   return `${operation.method.toUpperCase()} ${operation.path}`;

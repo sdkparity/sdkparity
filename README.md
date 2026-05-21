@@ -13,6 +13,8 @@ This repository is intentionally limited to public, reusable components.
 - `sdkparity manifest create`: extract TypeScript and Python SDK public surfaces.
 - `sdkparity compat diff`: compare two SDK surface manifests.
 - `sdkparity sdk generate`: generate a deterministic TypeScript or Python SDK.
+- Public generator config schemas for richer SDK targets, reliability,
+  pagination, auth, docs, CLI, MCP, and release metadata.
 - `sdkparity run generate`: run a local evidence pipeline for generated SDKs,
   snippets, MCP manifests, Code Mode typings, agent eval/readiness reports,
   compatibility reports, and release dry-run plans.
