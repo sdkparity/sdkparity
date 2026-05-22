@@ -1,5 +1,5 @@
 import { contentHash } from "@sdkparity/core";
-import type { SdkSurfaceManifest } from "@sdkparity/manifest";
+import type { SdkCapabilityId, SdkSurfaceManifest } from "@sdkparity/manifest";
 import type { CodeModeExecuteResult, McpManifest } from "@sdkparity/mcp";
 import type { GeneratedSdk, GeneratedSnippet, NormalizedSpec, SdkGenerationLanguage } from "@sdkparity/openapi";
 import { z } from "zod";
@@ -137,6 +137,8 @@ function sdkChecks(generatedSdks: GeneratedSdk[], manifests: SdkSurfaceManifest[
   const operationLinkedSymbols = manifests.flatMap((manifest) =>
     manifest.symbols.filter((symbol) => Boolean(symbol.operationId))
   );
+  const generatedLanguages = [...languages];
+  const manifestsByLanguage = new Map(manifests.map((manifest) => [manifest.package.language, manifest]));
 
   return [
     check(
@@ -173,8 +175,46 @@ function sdkChecks(generatedSdks: GeneratedSdk[], manifests: SdkSurfaceManifest[
       "SDK manifests retain operation identifiers for compatibility evidence.",
       "warning",
       "Regenerate manifests from SDKs that include operation-linked public methods."
+    ),
+    check(
+      "sdk.capabilities.errors",
+      generatedLanguages.length > 0 &&
+        generatedLanguages.every((language) => manifestHasAllCapabilities(manifestsByLanguage.get(language), ["typedErrors", "validation"])),
+      "SDK manifests expose typed errors and validation capability evidence.",
+      "warning",
+      "Regenerate manifests from SDKs that expose typed errors and request/response validation."
+    ),
+    check(
+      "sdk.capabilities.pagination",
+      generatedLanguages.length > 0 &&
+        generatedLanguages.every((language) => manifestHasAnyCapability(manifestsByLanguage.get(language), ["pagination.items", "pagination.pages"])),
+      "SDK manifests expose pagination capability evidence.",
+      "warning",
+      "Regenerate manifests from SDKs that include item or page pagination helpers."
+    ),
+    check(
+      "sdk.capabilities.hooks",
+      generatedLanguages.length > 0 &&
+        generatedLanguages.every((language) =>
+          manifestHasAllCapabilities(manifestsByLanguage.get(language), ["hooks.requests", "hooks.responses", "hooks.retries"])
+        ),
+      "SDK manifests expose request, response, and retry hook evidence.",
+      "warning",
+      "Regenerate manifests from SDKs that include request, response, and retry hook APIs."
     )
   ];
+}
+
+function manifestHasAllCapabilities(manifest: SdkSurfaceManifest | undefined, ids: SdkCapabilityId[]): boolean {
+  if (!manifest) return false;
+  const present = new Set(manifest.capabilities.filter((capability) => capability.present).map((capability) => capability.id));
+  return ids.every((id) => present.has(id));
+}
+
+function manifestHasAnyCapability(manifest: SdkSurfaceManifest | undefined, ids: SdkCapabilityId[]): boolean {
+  if (!manifest) return false;
+  const present = new Set(manifest.capabilities.filter((capability) => capability.present).map((capability) => capability.id));
+  return ids.some((id) => present.has(id));
 }
 
 function docsChecks(generatedSdks: GeneratedSdk[], snippets: GeneratedSnippet[]): AgentReadinessCheck[] {

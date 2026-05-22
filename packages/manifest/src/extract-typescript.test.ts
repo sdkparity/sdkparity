@@ -24,10 +24,17 @@ test("extracts exported declarations and skips private implementation details", 
       "export function listUsers(limit?: number): Promise<string[]> { return Promise.resolve([]); }",
       "export class Client {",
       "  public getUser(id: string): Promise<string> { return Promise.resolve(id); }",
+      "  public listUsersPages(): AsyncIterable<string> { throw new Error('fixture'); }",
+      "  public listUsersAutoPaging(): AsyncIterable<string> { throw new Error('fixture'); }",
+      "  public getUserWithResponse(id: string): Promise<SDKResponse<string>> { return Promise.resolve({} as SDKResponse<string>); }",
       "  private token(): string { return ''; }",
       "  protected secret(): string { return ''; }",
       "  [Symbol.iterator](): Iterator<string> { return [][Symbol.iterator](); }",
       "}",
+      "export interface SDKResponse<T> { data: T }",
+      "export interface SDKEventHooks { onRequest(): void; onResponse(): void; onRetry(): void }",
+      "export class APIError extends Error {}",
+      "export class SDKValidationError extends Error {}",
       "export interface User { id: string }",
       "export type UserId = string;",
       "export enum Role { Admin = 'admin' }",
@@ -42,10 +49,27 @@ test("extracts exported declarations and skips private implementation details", 
   expect(ids).toContain("listUsers");
   expect(ids).toContain("Client");
   expect(ids).toContain("Client.getUser");
+  expect(ids).toContain("Client.listUsersPages");
+  expect(ids).toContain("Client.listUsersAutoPaging");
+  expect(ids).toContain("Client.getUserWithResponse");
   expect(ids).toContain("User");
   expect(ids).toContain("UserId");
   expect(ids).toContain("Role");
   expect(ids).not.toContain("internalOnly");
   expect(ids).not.toContain("Client.token");
   expect(manifest.symbols.find((symbol) => symbol.id === "listUsers")?.deprecated).toBe(true);
+  expect(manifest.capabilities.filter((capability) => capability.present).map((capability) => capability.id)).toEqual(
+    expect.arrayContaining([
+      "client.async",
+      "rawResponses",
+      "pagination.items",
+      "pagination.pages",
+      "hooks.requests",
+      "hooks.responses",
+      "hooks.retries",
+      "typedErrors",
+      "validation"
+    ])
+  );
+  expect(manifest.capabilities.find((capability) => capability.id === "client.sync")?.present).toBe(false);
 });

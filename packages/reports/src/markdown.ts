@@ -37,6 +37,7 @@ export function renderManifestSummaryMarkdown(manifest: SdkSurfaceManifest): str
     `Package: \`${manifest.package.name}\``,
     `Language: \`${manifest.package.language}\``,
     `Symbols: ${manifest.symbols.length}`,
+    `Capabilities: ${manifest.capabilities.filter((capability) => capability.present).length}`,
     `Diagnostics: ${manifest.diagnostics.length}`,
     `Hash: \`${manifest.hash}\``,
     ""

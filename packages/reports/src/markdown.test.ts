@@ -51,6 +51,7 @@ test("renders no-change compatibility reports and manifest summaries", () => {
       version: "0.1",
       package: { name: "@sdkparity/test-sdk", language: "typescript", rootDir: "." },
       symbols: [],
+      capabilities: [],
       diagnostics: [],
       hash: "hash"
     })

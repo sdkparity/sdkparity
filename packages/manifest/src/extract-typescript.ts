@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 import ts from "typescript";
 import { contentHash, readJsonFile } from "@sdkparity/core";
+import { inferManifestCapabilities, type ManifestSourceFile } from "./capabilities";
 import { sdkSurfaceManifestSchema } from "./schemas";
 import type { ManifestSymbol, PackageMetadata, SdkSurfaceManifest } from "./schemas";
 
@@ -29,11 +30,13 @@ export async function createTypeScriptManifest(
 
   const files = await discoverTypeScriptSourceFiles(rootDir);
   const symbols: ManifestSymbol[] = [];
+  const sourceFiles: ManifestSourceFile[] = [];
 
   for (const filePath of files) {
     const sourceText = await readFile(filePath, "utf8");
     const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true);
     const sourceFileName = relative(rootDir, filePath);
+    sourceFiles.push({ path: sourceFileName, text: sourceText });
     symbols.push(...extractSourceFileSymbols(sourceFile, sourceFileName));
   }
 
@@ -41,6 +44,7 @@ export async function createTypeScriptManifest(
     version: "0.1" as const,
     package: metadata,
     symbols: symbols.sort((a, b) => a.id.localeCompare(b.id)),
+    capabilities: inferManifestCapabilities(symbols, sourceFiles),
     diagnostics: []
   };
 

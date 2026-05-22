@@ -118,9 +118,14 @@ export const sdkGeneratorPaginationSchema = z
 
 export const sdkGeneratorAuthSchema = z
   .object({
-    type: z.enum(["bearer", "apiKey", "oauth2", "none"]).optional(),
+    type: z.enum(["bearer", "apiKey", "oauth2", "basic", "none"]).optional(),
+    in: z.enum(["header", "query", "cookie"]).optional(),
     headerName: z.string().optional(),
+    queryName: z.string().optional(),
+    cookieName: z.string().optional(),
     envName: z.string().optional(),
+    usernameEnvName: z.string().optional(),
+    passwordEnvName: z.string().optional(),
     tokenUrl: z.string().optional(),
     scopes: z.array(z.string()).optional()
   })
@@ -148,6 +153,7 @@ export const sdkGeneratorOperationOverrideSchema = z
     resourceName: z.string().optional(),
     methodName: z.string().optional(),
     summary: z.string().optional(),
+    exclude: z.boolean().optional(),
     pagination: z.union([sdkGeneratorPaginationSchema, z.literal(false)]).optional(),
     retry: z.union([sdkGeneratorOperationReliabilitySchema, z.literal(false)]).optional(),
     auth: z.union([sdkGeneratorAuthSchema, z.literal(false)]).optional(),
@@ -190,6 +196,8 @@ export const sdkGeneratorPackageMetadataSchema = z
     repository: z.string().optional(),
     license: z.string().optional(),
     author: z.string().optional(),
+    homepage: z.string().optional(),
+    keywords: z.array(z.string()).optional(),
     release: z
       .object({
         npm: z.boolean().optional(),

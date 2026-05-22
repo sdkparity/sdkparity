@@ -1,6 +1,8 @@
-import { basename, join } from "node:path";
+import { readFile } from "node:fs/promises";
+import { basename, join, relative } from "node:path";
 import { contentHash, SdkParityError } from "@sdkparity/core";
 import { z } from "zod";
+import { inferManifestCapabilities, type ManifestSourceFile } from "./capabilities";
 import { sdkSurfaceManifestSchema } from "./schemas";
 import type { ManifestSymbol, PackageMetadata, SdkSurfaceManifest } from "./schemas";
 
@@ -63,11 +65,13 @@ export async function createPythonManifest(options: CreatePythonManifestOptions)
     ...symbol,
     operationId: symbol.operationId ?? inferOperationId(symbol.name)
   }));
+  const sourceFiles = await readPythonSourceFiles(rootDir);
 
   const manifestWithoutHash = {
     version: "0.1" as const,
     package: metadata,
     symbols: symbols.sort((a, b) => a.id.localeCompare(b.id)) satisfies ManifestSymbol[],
+    capabilities: inferManifestCapabilities(symbols, sourceFiles),
     diagnostics: extracted.diagnostics
   };
 
@@ -110,6 +114,42 @@ async function runPythonExtractor(
       details: { error: error instanceof Error ? error.message : String(error) }
     });
   }
+}
+
+async function readPythonSourceFiles(rootDir: string): Promise<ManifestSourceFile[]> {
+  const files: ManifestSourceFile[] = [];
+  for (const filePath of await discoverPythonSourceFiles(rootDir)) {
+    files.push({ path: relative(rootDir, filePath), text: await readFile(filePath, "utf8") });
+  }
+  return files;
+}
+
+async function discoverPythonSourceFiles(rootDir: string): Promise<string[]> {
+  const files: string[] = [];
+  const queue = [rootDir];
+  const ignored = new Set([".git", ".turbo", "__pycache__", "build", "dist", ".venv", "venv"]);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      continue;
+    }
+    const glob = new Bun.Glob("*");
+    for await (const entry of glob.scan({ cwd: current, onlyFiles: false, absolute: true })) {
+      const base = basename(entry);
+      if (ignored.has(base) || base.endsWith("_test.py") || base.startsWith("test_")) {
+        continue;
+      }
+      const stat = await Bun.file(entry).stat();
+      if (stat.isDirectory()) {
+        queue.push(entry);
+      } else if (entry.endsWith(".py")) {
+        files.push(entry);
+      }
+    }
+  }
+
+  return files.sort();
 }
 
 function inferOperationId(symbolName: string): string | undefined {

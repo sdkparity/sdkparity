@@ -4,8 +4,10 @@ export type ManifestSummary = {
   packageName: string;
   language: string;
   symbolCount: number;
+  capabilityCount: number;
   diagnosticCount: number;
   byKind: Record<string, number>;
+  capabilities: string[];
 };
 
 export function summarizeManifest(manifest: SdkSurfaceManifest): ManifestSummary {
@@ -18,7 +20,9 @@ export function summarizeManifest(manifest: SdkSurfaceManifest): ManifestSummary
     packageName: manifest.package.name,
     language: manifest.package.language,
     symbolCount: manifest.symbols.length,
+    capabilityCount: manifest.capabilities.filter((capability) => capability.present).length,
     diagnosticCount: manifest.diagnostics.length,
-    byKind
+    byKind,
+    capabilities: manifest.capabilities.filter((capability) => capability.present).map((capability) => capability.id)
   };
 }

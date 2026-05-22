@@ -60,7 +60,9 @@ test("validates rich SDK generator config contracts", () => {
       events: { propertyName: "events", className: "EventsResource" }
     },
     operations: {
-      getHealth: { auth: false, methodName: "getHealth" }
+      getHealth: { auth: false, methodName: "getHealth" },
+      listEvents: { auth: { type: "apiKey", in: "query", queryName: "api_key" } },
+      basicOnly: { auth: { type: "basic", usernameEnvName: "PULSE_USERNAME", passwordEnvName: "PULSE_PASSWORD" } }
     },
     pagination: {
       listEvents: {
@@ -84,6 +86,8 @@ test("validates rich SDK generator config contracts", () => {
     },
     package: {
       license: "Apache-2.0",
+      homepage: "https://sdkparity.example",
+      keywords: ["sdk", "openapi"],
       release: { npm: true, provenance: true }
     }
   });
@@ -92,6 +96,9 @@ test("validates rich SDK generator config contracts", () => {
   expect(parsed.reliability?.backoff?.maxElapsedMs).toBe(60_000);
   expect(parsed.reliability?.operations?.createEvent?.backoff?.maxElapsedMs).toBe(30_000);
   expect(parsed.operations?.getHealth?.auth).toBe(false);
+  expect(parsed.operations?.listEvents?.auth && typeof parsed.operations.listEvents.auth === "object" ? parsed.operations.listEvents.auth.queryName : undefined).toBe("api_key");
+  expect(parsed.operations?.basicOnly?.auth && typeof parsed.operations.basicOnly.auth === "object" ? parsed.operations.basicOnly.auth.type : undefined).toBe("basic");
+  expect(parsed.package?.homepage).toBe("https://sdkparity.example");
   expect(parsed.pagination?.listEvents?.strategy).toBe("cursor");
 });
 
