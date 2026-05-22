@@ -64,11 +64,22 @@ export const sdkGeneratorRateLimitSchema = z
   })
   .strict();
 
+export const sdkGeneratorRetryBackoffSchema = z
+  .object({
+    initialDelayMs: z.number().int().positive().optional(),
+    maxDelayMs: z.number().int().positive().optional(),
+    maxElapsedMs: z.number().int().positive().optional(),
+    multiplier: z.number().positive().optional(),
+    jitter: z.number().min(0).max(1).optional()
+  })
+  .strict();
+
 export const sdkGeneratorOperationReliabilitySchema = z
   .object({
     maxRetries: z.number().int().nonnegative().optional(),
     timeoutMs: z.number().int().positive().optional(),
     retryableStatuses: z.array(z.number().int().positive()).optional(),
+    backoff: sdkGeneratorRetryBackoffSchema.optional(),
     rateLimit: sdkGeneratorRateLimitSchema.optional()
   })
   .strict();
@@ -86,6 +97,7 @@ export const sdkGeneratorReliabilitySchema = z
       })
       .strict()
       .optional(),
+    backoff: sdkGeneratorRetryBackoffSchema.optional(),
     rateLimit: sdkGeneratorRateLimitSchema.optional(),
     operations: z.record(z.string(), sdkGeneratorOperationReliabilitySchema).optional()
   })
@@ -235,6 +247,7 @@ export type SdkGeneratorMcpTarget = z.infer<typeof sdkGeneratorMcpTargetSchema>;
 export type SdkGeneratorCliTarget = z.infer<typeof sdkGeneratorCliTargetSchema>;
 export type SdkGeneratorResponseFilter = z.infer<typeof sdkGeneratorResponseFilterSchema>;
 export type SdkGeneratorSandbox = z.infer<typeof sdkGeneratorSandboxSchema>;
+export type SdkGeneratorRetryBackoff = z.infer<typeof sdkGeneratorRetryBackoffSchema>;
 export type SdkGeneratorReliability = z.infer<typeof sdkGeneratorReliabilitySchema>;
 export type SdkGeneratorOperationReliability = z.infer<typeof sdkGeneratorOperationReliabilitySchema>;
 export type SdkGeneratorCompatibility = z.infer<typeof sdkGeneratorCompatibilitySchema>;

@@ -41,10 +41,18 @@ test("validates rich SDK generator config contracts", () => {
         requestsPerSecond: 20,
         burst: 20
       },
+      backoff: {
+        initialDelayMs: 500,
+        maxDelayMs: 8_000,
+        maxElapsedMs: 60_000,
+        multiplier: 2,
+        jitter: 0.25
+      },
       operations: {
         createEvent: {
           maxRetries: 4,
-          retryableStatuses: [429, 500]
+          retryableStatuses: [429, 500],
+          backoff: { maxElapsedMs: 30_000 }
         }
       }
     },
@@ -81,6 +89,8 @@ test("validates rich SDK generator config contracts", () => {
   });
 
   expect(parsed.targets.mcp?.responseFilters?.listEvents?.type).toBe("fields");
+  expect(parsed.reliability?.backoff?.maxElapsedMs).toBe(60_000);
+  expect(parsed.reliability?.operations?.createEvent?.backoff?.maxElapsedMs).toBe(30_000);
   expect(parsed.operations?.getHealth?.auth).toBe(false);
   expect(parsed.pagination?.listEvents?.strategy).toBe("cursor");
 });
