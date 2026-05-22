@@ -18,6 +18,7 @@ const base: SdkSurfaceManifest = {
       origin: "unknown"
     }
   ],
+  capabilities: [{ id: "client.sync", present: true, evidence: ["symbol:Client"], symbolIds: ["Client"] }],
   diagnostics: [],
   hash: "old"
 };

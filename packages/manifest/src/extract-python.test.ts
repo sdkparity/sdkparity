@@ -21,6 +21,9 @@ test("extracts public Python symbols with package metadata", async () => {
   expect(manifest.symbols.find((symbol) => symbol.id === "Client.list_users")?.operationId).toBe(
     "listUsers"
   );
+  expect(manifest.capabilities.some((capability) => capability.id === "client.sync" && capability.present)).toBe(
+    true
+  );
   expect(manifest.hash).toHaveLength(64);
 });
 
@@ -36,6 +39,26 @@ test("reports Python parse failures as manifest diagnostics", async () => {
   expect(manifest.diagnostics).toEqual([
     expect.objectContaining({ code: "python_parse_failed", severity: "error" })
   ]);
+  expect(manifest.capabilities.every((capability) => !capability.present)).toBe(true);
+});
+
+test("does not mark async-only Python clients as sync clients", async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), "sdkparity-python-manifest-"));
+  await mkdir(join(rootDir, "pkg"), { recursive: true });
+  await writeFile(
+    join(rootDir, "pkg", "__init__.py"),
+    [
+      "class AsyncClient:",
+      "    async def list_users(self):",
+      "        return []",
+      ""
+    ].join("\n")
+  );
+
+  const manifest = await createPythonManifest({ repoPath: rootDir, packageName: "async-only" });
+
+  expect(manifest.capabilities.find((capability) => capability.id === "client.async")?.present).toBe(true);
+  expect(manifest.capabilities.find((capability) => capability.id === "client.sync")?.present).toBe(false);
 });
 
 test("raises a stable error when the Python extractor process fails", async () => {

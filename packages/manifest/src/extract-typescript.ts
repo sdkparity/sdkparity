@@ -1,7 +1,8 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 import ts from "typescript";
 import { contentHash, readJsonFile } from "@sdkparity/core";
+import { inferManifestCapabilities, type ManifestSourceFile } from "./capabilities";
 import { sdkSurfaceManifestSchema } from "./schemas";
 import type { ManifestSymbol, PackageMetadata, SdkSurfaceManifest } from "./schemas";
 
@@ -29,11 +30,13 @@ export async function createTypeScriptManifest(
 
   const files = await discoverTypeScriptSourceFiles(rootDir);
   const symbols: ManifestSymbol[] = [];
+  const sourceFiles: ManifestSourceFile[] = [];
 
   for (const filePath of files) {
     const sourceText = await readFile(filePath, "utf8");
     const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true);
     const sourceFileName = relative(rootDir, filePath);
+    sourceFiles.push({ path: sourceFileName, text: sourceText });
     symbols.push(...extractSourceFileSymbols(sourceFile, sourceFileName));
   }
 
@@ -41,6 +44,7 @@ export async function createTypeScriptManifest(
     version: "0.1" as const,
     package: metadata,
     symbols: symbols.sort((a, b) => a.id.localeCompare(b.id)),
+    capabilities: inferManifestCapabilities(symbols, sourceFiles),
     diagnostics: []
   };
 
@@ -205,20 +209,20 @@ async function discoverTypeScriptSourceFiles(rootDir: string): Promise<string[]>
   const files: string[] = [];
   const queue = [rootDir];
   const ignored = new Set(["node_modules", "dist", "build", ".git", ".turbo"]);
+  const directory = new Bun.Glob("*");
 
   while (queue.length > 0) {
     const current = queue.shift();
     if (!current) {
       continue;
     }
-    const directory = new Bun.Glob("*");
     for await (const entry of directory.scan({ cwd: current, onlyFiles: false, absolute: true })) {
       const base = basename(entry);
       if (ignored.has(base) || base.endsWith(".test.ts") || base.endsWith(".d.ts")) {
         continue;
       }
-      const stat = await Bun.file(entry).stat();
-      if (stat.isDirectory()) {
+      const entryStat = await stat(entry);
+      if (entryStat.isDirectory()) {
         queue.push(entry);
       } else if (entry.endsWith(".ts") || entry.endsWith(".tsx")) {
         files.push(entry);

@@ -64,11 +64,47 @@ export const sdkGeneratorRateLimitSchema = z
   })
   .strict();
 
+export const sdkGeneratorRetryBackoffSchema = z
+  .object({
+    initialDelayMs: z.number().int().positive().optional(),
+    maxDelayMs: z.number().int().positive().optional(),
+    maxElapsedMs: z.number().int().positive().optional(),
+    multiplier: z.number().positive().optional(),
+    jitter: z.number().min(0).max(1).optional()
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (
+      value.initialDelayMs !== undefined &&
+      value.maxDelayMs !== undefined &&
+      value.initialDelayMs > value.maxDelayMs
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["initialDelayMs"],
+        message: "initialDelayMs must be less than or equal to maxDelayMs"
+      });
+    }
+
+    if (
+      value.maxDelayMs !== undefined &&
+      value.maxElapsedMs !== undefined &&
+      value.maxDelayMs > value.maxElapsedMs
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["maxDelayMs"],
+        message: "maxDelayMs must be less than or equal to maxElapsedMs"
+      });
+    }
+  });
+
 export const sdkGeneratorOperationReliabilitySchema = z
   .object({
     maxRetries: z.number().int().nonnegative().optional(),
     timeoutMs: z.number().int().positive().optional(),
     retryableStatuses: z.array(z.number().int().positive()).optional(),
+    backoff: sdkGeneratorRetryBackoffSchema.optional(),
     rateLimit: sdkGeneratorRateLimitSchema.optional()
   })
   .strict();
@@ -86,6 +122,7 @@ export const sdkGeneratorReliabilitySchema = z
       })
       .strict()
       .optional(),
+    backoff: sdkGeneratorRetryBackoffSchema.optional(),
     rateLimit: sdkGeneratorRateLimitSchema.optional(),
     operations: z.record(z.string(), sdkGeneratorOperationReliabilitySchema).optional()
   })
@@ -106,13 +143,66 @@ export const sdkGeneratorPaginationSchema = z
 
 export const sdkGeneratorAuthSchema = z
   .object({
-    type: z.enum(["bearer", "apiKey", "oauth2", "none"]).optional(),
+    type: z.enum(["bearer", "apiKey", "oauth2", "basic", "none"]).optional(),
+    in: z.enum(["header", "query", "cookie"]).optional(),
     headerName: z.string().optional(),
+    queryName: z.string().optional(),
+    cookieName: z.string().optional(),
     envName: z.string().optional(),
+    usernameEnvName: z.string().optional(),
+    passwordEnvName: z.string().optional(),
     tokenUrl: z.string().optional(),
     scopes: z.array(z.string()).optional()
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    const type = value.type ?? "bearer";
+
+    if (value.headerName && value.in && value.in !== "header") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["headerName"],
+        message: "headerName can only be used when auth.in is header"
+      });
+    }
+    if (value.queryName && value.in !== "query") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["queryName"],
+        message: "queryName can only be used when auth.in is query"
+      });
+    }
+    if (value.cookieName && value.in !== "cookie") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["cookieName"],
+        message: "cookieName can only be used when auth.in is cookie"
+      });
+    }
+
+    if (type !== "basic" && (value.usernameEnvName || value.passwordEnvName)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["usernameEnvName"],
+        message: "usernameEnvName and passwordEnvName can only be used with basic auth"
+      });
+    }
+    if (type === "basic" && (!value.usernameEnvName || !value.passwordEnvName)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["usernameEnvName"],
+        message: "basic auth requires usernameEnvName and passwordEnvName"
+      });
+    }
+
+    if (type !== "oauth2" && (value.tokenUrl || value.scopes)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["tokenUrl"],
+        message: "tokenUrl and scopes can only be used with oauth2 auth"
+      });
+    }
+  });
 
 export const sdkGeneratorResourceOverrideSchema = z
   .object({
@@ -136,6 +226,7 @@ export const sdkGeneratorOperationOverrideSchema = z
     resourceName: z.string().optional(),
     methodName: z.string().optional(),
     summary: z.string().optional(),
+    exclude: z.boolean().optional(),
     pagination: z.union([sdkGeneratorPaginationSchema, z.literal(false)]).optional(),
     retry: z.union([sdkGeneratorOperationReliabilitySchema, z.literal(false)]).optional(),
     auth: z.union([sdkGeneratorAuthSchema, z.literal(false)]).optional(),
@@ -178,6 +269,8 @@ export const sdkGeneratorPackageMetadataSchema = z
     repository: z.string().optional(),
     license: z.string().optional(),
     author: z.string().optional(),
+    homepage: z.string().optional(),
+    keywords: z.array(z.string()).optional(),
     release: z
       .object({
         npm: z.boolean().optional(),
@@ -235,6 +328,7 @@ export type SdkGeneratorMcpTarget = z.infer<typeof sdkGeneratorMcpTargetSchema>;
 export type SdkGeneratorCliTarget = z.infer<typeof sdkGeneratorCliTargetSchema>;
 export type SdkGeneratorResponseFilter = z.infer<typeof sdkGeneratorResponseFilterSchema>;
 export type SdkGeneratorSandbox = z.infer<typeof sdkGeneratorSandboxSchema>;
+export type SdkGeneratorRetryBackoff = z.infer<typeof sdkGeneratorRetryBackoffSchema>;
 export type SdkGeneratorReliability = z.infer<typeof sdkGeneratorReliabilitySchema>;
 export type SdkGeneratorOperationReliability = z.infer<typeof sdkGeneratorOperationReliabilitySchema>;
 export type SdkGeneratorCompatibility = z.infer<typeof sdkGeneratorCompatibilitySchema>;

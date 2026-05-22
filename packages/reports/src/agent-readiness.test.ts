@@ -88,9 +88,32 @@ test("returns warning status when only non-blocking readiness checks fail", () =
     expect.arrayContaining([
       "Generated SDK languages have matching surface manifests.",
       "Docs snippets cover every generated SDK language.",
+      "SDK manifests expose typed errors and validation capability evidence.",
+      "SDK manifests expose pagination capability evidence.",
+      "SDK manifests expose request, response, and retry hook evidence.",
       "MCP token budget favors grouped tools over direct tool sprawl."
     ])
   );
+});
+
+test("requires SDK capability evidence per generated language", () => {
+  const pythonManifest = {
+    ...manifest("python"),
+    capabilities: manifest("python").capabilities.map((capability) =>
+      capability.id === "pagination.items" ? { ...capability, present: false, evidence: [], symbolIds: [] } : capability
+    )
+  };
+  const report = createAgentReadinessReport({
+    generatedSdks: [generatedSdk("typescript"), generatedSdk("python")],
+    sdkManifests: [manifest("typescript"), pythonManifest],
+    snippets: [snippet("typescript"), snippet("python")],
+    mcpManifest,
+    codeModeTypes: "export type SdkParityApi = { listUsers(input: Record<string, unknown>): Promise<unknown>; };",
+    codeModeDryRun
+  });
+
+  expect(report.status).toBe("warn");
+  expect(report.warnings).toContain("SDK manifests expose pagination capability evidence.");
 });
 
 function generatedSdk(language: GeneratedSdk["language"], operationCount = 1): GeneratedSdk {
@@ -122,6 +145,14 @@ function manifest(language: SdkSurfaceManifest["package"]["language"]): SdkSurfa
         operationId: "listUsers",
         origin: "generated"
       }
+    ],
+    capabilities: [
+      { id: "typedErrors", present: true, evidence: ["symbol:APIError"], symbolIds: ["APIError"] },
+      { id: "validation", present: true, evidence: ["symbol:SDKValidationError"], symbolIds: ["SDKValidationError"] },
+      { id: "pagination.items", present: true, evidence: ["symbol:Client.listUsersAutoPaging"], symbolIds: ["Client.listUsersAutoPaging"] },
+      { id: "hooks.requests", present: true, evidence: ["source:client"], symbolIds: [] },
+      { id: "hooks.responses", present: true, evidence: ["source:client"], symbolIds: [] },
+      { id: "hooks.retries", present: true, evidence: ["source:client"], symbolIds: [] }
     ],
     diagnostics: [],
     hash: `manifest_${language}`.padEnd(16, "0")

@@ -241,8 +241,10 @@ test("generates TypeScript and Python SDK parity artifacts end to end", async ()
   });
   expect(await readFile(join(runOutputDir, "code-mode-types.d.ts"), "utf8")).toContain("list");
   expect(JSON.parse(await readFile(join(runOutputDir, "agent-readiness-report.json"), "utf8"))).toMatchObject({
-    status: "pass",
+    status: "warn",
+    warnings: expect.arrayContaining(["SDK manifests expose typed errors and validation capability evidence."]),
     surfaces: expect.arrayContaining([
+      expect.objectContaining({ id: "sdk", status: "warn" }),
       expect.objectContaining({ id: "code-mode", status: "pass" }),
       expect.objectContaining({ id: "evals", status: "pass" })
     ])

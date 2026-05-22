@@ -14,6 +14,37 @@ export const symbolKindSchema = z.enum([
 
 export type SymbolKind = z.infer<typeof symbolKindSchema>;
 
+export const sdkCapabilityIdSchema = z.enum([
+  "client.async",
+  "client.sync",
+  "resources",
+  "rawResponses",
+  "pagination.items",
+  "pagination.pages",
+  "streaming",
+  "hooks.requests",
+  "hooks.responses",
+  "hooks.retries",
+  "typedErrors",
+  "validation",
+  "fileUploads",
+  "binaryDownloads",
+  "webhooks"
+]);
+
+export type SdkCapabilityId = z.infer<typeof sdkCapabilityIdSchema>;
+
+export const manifestCapabilitySchema = z
+  .object({
+    id: sdkCapabilityIdSchema,
+    present: z.boolean(),
+    evidence: z.array(z.string()),
+    symbolIds: z.array(z.string())
+  })
+  .strict();
+
+export type ManifestCapability = z.infer<typeof manifestCapabilitySchema>;
+
 export const manifestSymbolSchema = z
   .object({
     id: z.string(),
@@ -59,6 +90,7 @@ export const sdkSurfaceManifestSchema = z
     version: z.literal("0.1"),
     package: packageMetadataSchema,
     symbols: z.array(manifestSymbolSchema),
+    capabilities: z.array(manifestCapabilitySchema).default([]),
     diagnostics: z.array(sdkSurfaceManifestDiagnosticSchema),
     hash: z.string()
   })

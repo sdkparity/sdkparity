@@ -1,3 +1,4 @@
+export * from "./capabilities";
 export * from "./extract-python";
 export * from "./extract-typescript";
 export * from "./schemas";
