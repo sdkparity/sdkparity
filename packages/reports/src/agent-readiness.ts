@@ -206,15 +206,17 @@ function sdkChecks(generatedSdks: GeneratedSdk[], manifests: SdkSurfaceManifest[
 }
 
 function manifestHasAllCapabilities(manifest: SdkSurfaceManifest | undefined, ids: SdkCapabilityId[]): boolean {
-  if (!manifest) return false;
-  const present = new Set(manifest.capabilities.filter((capability) => capability.present).map((capability) => capability.id));
+  const present = presentCapabilityIds(manifest);
   return ids.every((id) => present.has(id));
 }
 
 function manifestHasAnyCapability(manifest: SdkSurfaceManifest | undefined, ids: SdkCapabilityId[]): boolean {
-  if (!manifest) return false;
-  const present = new Set(manifest.capabilities.filter((capability) => capability.present).map((capability) => capability.id));
+  const present = presentCapabilityIds(manifest);
   return ids.some((id) => present.has(id));
+}
+
+function presentCapabilityIds(manifest: SdkSurfaceManifest | undefined): Set<SdkCapabilityId> {
+  return new Set((manifest?.capabilities ?? []).filter((capability) => capability.present).map((capability) => capability.id));
 }
 
 function docsChecks(generatedSdks: GeneratedSdk[], snippets: GeneratedSnippet[]): AgentReadinessCheck[] {
