@@ -5,6 +5,15 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts"],
-  "references": [{ "path": "../openapi" }]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../openapi"
+    }
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ]
 }

@@ -1,6 +1,6 @@
 import type { ManifestSymbol, SdkSurfaceManifest } from "@sdkparity/manifest";
-import { compatibilityReportSchema } from "./schemas";
-import type { CompatibilityChange, CompatibilityReport } from "./schemas";
+import { compatibilityReportSchema } from "./schemas.js";
+import type { CompatibilityChange, CompatibilityReport } from "./schemas.js";
 
 export function diffManifests(
   previous: SdkSurfaceManifest,

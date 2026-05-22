@@ -17,12 +17,10 @@
   },
   "files": [
     "dist",
-    "src",
-    "!dist/**/*.test.*",
-    "!src/**/*.test.ts"
+    "README.md"
   ],
   "scripts": {
-    "build": "tsc -b tsconfig.json",
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -b tsconfig.json --force",
     "prepack": "npm run build",
     "prepublishOnly": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -30,8 +28,25 @@
     "coverage": "bun test src --coverage --coverage-reporter=text"
   },
   "dependencies": {
-    "@sdkparity/core": "file:../core",
+    "@sdkparity/core": "^0.1.0",
     "yaml": "^2.8.1",
     "zod": "^4.1.13"
-  }
+  },
+  "description": "OpenAPI normalization and deterministic SDK generation helpers for SDK Parity.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sdkparity/sdkparity.git",
+    "directory": "packages/openapi"
+  },
+  "homepage": "https://github.com/sdkparity/sdkparity#readme",
+  "bugs": {
+    "url": "https://github.com/sdkparity/sdkparity/issues"
+  },
+  "keywords": [
+    "sdk",
+    "openapi",
+    "compatibility",
+    "api",
+    "agents"
+  ]
 }

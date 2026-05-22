@@ -4,22 +4,52 @@
   "type": "module",
   "license": "Apache-2.0",
   "bin": {
-    "sdkparity": "./src/index.ts"
+    "sdkparity": "./dist/bin.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "bun test src",
-    "coverage": "bun test src --coverage --coverage-reporter=text"
+    "coverage": "bun test src --coverage --coverage-reporter=text",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@sdkparity/compat": "file:../../packages/compat",
-    "@sdkparity/config": "file:../../packages/config",
-    "@sdkparity/core": "file:../../packages/core",
-    "@sdkparity/manifest": "file:../../packages/manifest",
-    "@sdkparity/mcp": "file:../../packages/mcp",
-    "@sdkparity/openapi": "file:../../packages/openapi",
-    "@sdkparity/reports": "file:../../packages/reports",
-    "@sdkparity/runner-protocol": "file:../../packages/runner-protocol"
-  }
+    "@sdkparity/compat": "^0.1.0",
+    "@sdkparity/config": "^0.1.0",
+    "@sdkparity/core": "^0.1.0",
+    "@sdkparity/manifest": "^0.1.0",
+    "@sdkparity/mcp": "^0.1.0",
+    "@sdkparity/openapi": "^0.1.0",
+    "@sdkparity/reports": "^0.1.0",
+    "@sdkparity/runner-protocol": "^0.1.0"
+  },
+  "description": "SDK Parity command-line interface for SDK manifests, compatibility checks, and local evidence runs.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sdkparity/sdkparity.git",
+    "directory": "apps/cli"
+  },
+  "homepage": "https://github.com/sdkparity/sdkparity#readme",
+  "bugs": {
+    "url": "https://github.com/sdkparity/sdkparity/issues"
+  },
+  "keywords": [
+    "sdk",
+    "openapi",
+    "compatibility",
+    "api",
+    "agents"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

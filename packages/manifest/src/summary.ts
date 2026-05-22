@@ -1,4 +1,4 @@
-import type { SdkSurfaceManifest } from "./schemas";
+import type { SdkSurfaceManifest } from "./schemas.js";
 
 export type ManifestSummary = {
   packageName: string;

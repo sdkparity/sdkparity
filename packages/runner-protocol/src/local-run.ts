@@ -29,7 +29,7 @@ import {
   renderReleasePlanMarkdown
 } from "@sdkparity/reports";
 import { z } from "zod";
-import { generationLanguageSchema, type GenerationLanguage } from "./language";
+import { generationLanguageSchema, type GenerationLanguage } from "./language.js";
 
 const semverRecommendationSchema = z.enum(["patch", "minor", "major", "unknown"]);
 type SemverRecommendation = z.infer<typeof semverRecommendationSchema>;

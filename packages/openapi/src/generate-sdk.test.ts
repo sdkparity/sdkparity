@@ -82,6 +82,16 @@ test("generates deterministic TypeScript SDK files that compile and run", async 
   expect(calls).toEqual(["/users?limit=10", "/users", "/users/usr_123"]);
 });
 
+test("generated TypeScript SDK typechecks under its emitted tsconfig", async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), "sdkparity-generated-tsc-"));
+  const sdk = generateTypeScriptSdk(spec, { packageName: "@example/generated" });
+  await writeGeneratedSdk(sdk, rootDir);
+
+  const result = await run(["bunx", "tsc", "-p", join(rootDir, "tsconfig.json"), "--noEmit"], rootDir);
+  expect(result.stderr).toBe("");
+  expect(result.exitCode).toBe(0);
+});
+
 test("generates deterministic Python SDK files that import and run", async () => {
   const rootDir = await mkdtemp(join(tmpdir(), "sdkparity-generated-python-"));
   const sdk = generatePythonSdk(spec, { packageName: "sdkparity-example" });

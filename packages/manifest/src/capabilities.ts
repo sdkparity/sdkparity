@@ -1,4 +1,4 @@
-import type { ManifestCapability, ManifestSymbol, SdkCapabilityId } from "./schemas";
+import type { ManifestCapability, ManifestSymbol, SdkCapabilityId } from "./schemas.js";
 
 export type ManifestSourceFile = {
   path: string;

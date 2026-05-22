@@ -1,8 +1,8 @@
 import { contentHash } from "@sdkparity/core";
 import type { NormalizedOperation, NormalizedSpec } from "@sdkparity/openapi";
-import { generateCodeModeTypes } from "./code-mode";
-import { mcpManifestSchema } from "./schemas";
-import type { McpManifest, McpWorkflowTool } from "./schemas";
+import { generateCodeModeTypes } from "./code-mode.js";
+import { mcpManifestSchema } from "./schemas.js";
+import type { McpManifest, McpWorkflowTool } from "./schemas.js";
 
 export function generateMcpManifest(spec: NormalizedSpec): McpManifest {
   const publicOperations = spec.operations.filter((operation) => operation.mcpVisibility === "public");

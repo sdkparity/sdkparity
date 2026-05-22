@@ -17,7 +17,9 @@
     "coverage": "turbo run coverage",
     "docs:dev": "cd . && mint dev",
     "docs:check": "mint broken-links && mint validate",
-    "sdkparity": "bun apps/cli/src/bin.ts"
+    "sdkparity": "bun apps/cli/src/bin.ts",
+    "ci": "bun run typecheck && bun run test && bun run build && bun run pack:smoke",
+    "pack:smoke": "bun scripts/pack-smoke.mjs"
   },
   "devDependencies": {
     "turbo": "^2.6.3",

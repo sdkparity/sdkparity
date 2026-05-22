@@ -5,6 +5,15 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts"],
-  "references": [{ "path": "../manifest" }]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../manifest"
+    }
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ]
 }

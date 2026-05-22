@@ -4,24 +4,63 @@
   "type": "module",
   "license": "Apache-2.0",
   "exports": {
-    ".": "./src/index.ts",
-    "./language": "./src/language.ts",
-    "./local-run": "./src/local-run.ts",
-    "./state": "./src/state.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./language": {
+      "types": "./dist/language.d.ts",
+      "import": "./dist/language.js",
+      "default": "./dist/language.js"
+    },
+    "./local-run": {
+      "types": "./dist/local-run.d.ts",
+      "import": "./dist/local-run.js",
+      "default": "./dist/local-run.js"
+    },
+    "./state": {
+      "types": "./dist/state.d.ts",
+      "import": "./dist/state.js",
+      "default": "./dist/state.js"
+    }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "bun test src",
-    "coverage": "bun test src --coverage --coverage-reporter=text"
+    "coverage": "bun test src --coverage --coverage-reporter=text",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@sdkparity/compat": "file:../compat",
-    "@sdkparity/core": "file:../core",
-    "@sdkparity/manifest": "file:../manifest",
-    "@sdkparity/mcp": "file:../mcp",
-    "@sdkparity/openapi": "file:../openapi",
-    "@sdkparity/reports": "file:../reports",
+    "@sdkparity/compat": "^0.1.0",
+    "@sdkparity/core": "^0.1.0",
+    "@sdkparity/manifest": "^0.1.0",
+    "@sdkparity/mcp": "^0.1.0",
+    "@sdkparity/openapi": "^0.1.0",
+    "@sdkparity/reports": "^0.1.0",
     "zod": "^4.1.13"
-  }
+  },
+  "description": "Local runner protocol and generation workflow contracts for SDK Parity.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sdkparity/sdkparity.git",
+    "directory": "packages/runner-protocol"
+  },
+  "homepage": "https://github.com/sdkparity/sdkparity#readme",
+  "bugs": {
+    "url": "https://github.com/sdkparity/sdkparity/issues"
+  },
+  "keywords": [
+    "sdk",
+    "openapi",
+    "compatibility",
+    "api",
+    "agents"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }
