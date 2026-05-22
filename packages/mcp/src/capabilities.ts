@@ -1,4 +1,4 @@
-import type { AgentCapability } from "./schemas";
+import type { AgentCapability } from "./schemas.js";
 
 const registry = {
   "agent.schema.introspection": {

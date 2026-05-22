@@ -7,7 +7,7 @@ import {
   mcpManifestSchema,
   mcpSearchInputSchema,
   mcpSearchResultSchema
-} from "./schemas";
+} from "./schemas.js";
 
 const registry = {
   "openapi.document": {

@@ -3,7 +3,7 @@ import type { SdkCapabilityId, SdkSurfaceManifest } from "@sdkparity/manifest";
 import type { CodeModeExecuteResult, McpManifest } from "@sdkparity/mcp";
 import type { GeneratedSdk, GeneratedSnippet, NormalizedSpec, SdkGenerationLanguage } from "@sdkparity/openapi";
 import { z } from "zod";
-import { agentEvalReportSchema, createAgentEvalReport, type AgentEvalReport } from "./agent-evals";
+import { agentEvalReportSchema, createAgentEvalReport, type AgentEvalReport } from "./agent-evals.js";
 
 const readinessStatusSchema = z.enum(["pass", "warn", "fail"]);
 const readinessSeveritySchema = z.enum(["info", "warning", "error"]);

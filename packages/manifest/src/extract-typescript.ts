@@ -2,9 +2,9 @@ import { readFile, stat } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 import ts from "typescript";
 import { contentHash, readJsonFile } from "@sdkparity/core";
-import { inferManifestCapabilities, type ManifestSourceFile } from "./capabilities";
-import { sdkSurfaceManifestSchema } from "./schemas";
-import type { ManifestSymbol, PackageMetadata, SdkSurfaceManifest } from "./schemas";
+import { inferManifestCapabilities, type ManifestSourceFile } from "./capabilities.js";
+import { sdkSurfaceManifestSchema } from "./schemas.js";
+import type { ManifestSymbol, PackageMetadata, SdkSurfaceManifest } from "./schemas.js";
 
 export type CreateTypeScriptManifestOptions = {
   repoPath: string;

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { generationLanguageSchema } from "./language";
+import { generationLanguageSchema } from "./language.js";
 
 export const runStageSchema = z.enum([
   "queued",

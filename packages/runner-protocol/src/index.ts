@@ -1,2 +1,2 @@
-export * from "./language";
-export * from "./state";
+export * from "./language.js";
+export * from "./state.js";

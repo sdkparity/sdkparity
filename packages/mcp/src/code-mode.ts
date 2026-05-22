@@ -1,6 +1,6 @@
 import type { NormalizedSpec } from "@sdkparity/openapi";
-import { codeModeExecuteInputSchema, codeModeExecuteResultSchema, mcpSearchInputSchema } from "./schemas";
-import type { CodeModeExecuteInput, CodeModeExecuteResult, McpSearchInput, McpSearchResult } from "./schemas";
+import { codeModeExecuteInputSchema, codeModeExecuteResultSchema, mcpSearchInputSchema } from "./schemas.js";
+import type { CodeModeExecuteInput, CodeModeExecuteResult, McpSearchInput, McpSearchResult } from "./schemas.js";
 
 export function searchOperations(spec: NormalizedSpec, input: McpSearchInput): McpSearchResult[] {
   const parsed = mcpSearchInputSchema.parse(input);

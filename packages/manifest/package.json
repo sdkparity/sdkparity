@@ -4,21 +4,64 @@
   "type": "module",
   "license": "Apache-2.0",
   "exports": {
-    ".": "./src/index.ts",
-    "./extract-python": "./src/extract-python.ts",
-    "./extract-typescript": "./src/extract-typescript.ts",
-    "./schemas": "./src/schemas.ts",
-    "./summary": "./src/summary.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./extract-python": {
+      "types": "./dist/extract-python.d.ts",
+      "import": "./dist/extract-python.js",
+      "default": "./dist/extract-python.js"
+    },
+    "./extract-typescript": {
+      "types": "./dist/extract-typescript.d.ts",
+      "import": "./dist/extract-typescript.js",
+      "default": "./dist/extract-typescript.js"
+    },
+    "./schemas": {
+      "types": "./dist/schemas.d.ts",
+      "import": "./dist/schemas.js",
+      "default": "./dist/schemas.js"
+    },
+    "./summary": {
+      "types": "./dist/summary.d.ts",
+      "import": "./dist/summary.js",
+      "default": "./dist/summary.js"
+    }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "bun test src",
-    "coverage": "bun test src --coverage --coverage-reporter=text"
+    "coverage": "bun test src --coverage --coverage-reporter=text",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@sdkparity/core": "file:../core",
+    "@sdkparity/core": "^0.1.0",
     "typescript": "^5.9.3",
     "zod": "^4.1.13"
-  }
+  },
+  "description": "SDK public surface manifest schemas and extractors.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sdkparity/sdkparity.git",
+    "directory": "packages/manifest"
+  },
+  "homepage": "https://github.com/sdkparity/sdkparity#readme",
+  "bugs": {
+    "url": "https://github.com/sdkparity/sdkparity/issues"
+  },
+  "keywords": [
+    "sdk",
+    "openapi",
+    "compatibility",
+    "api",
+    "agents"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

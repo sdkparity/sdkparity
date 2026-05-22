@@ -5,14 +5,36 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts"
+  ],
   "references": [
-    { "path": "../../packages/core" },
-    { "path": "../../packages/openapi" },
-    { "path": "../../packages/manifest" },
-    { "path": "../../packages/compat" },
-    { "path": "../../packages/reports" },
-    { "path": "../../packages/mcp" },
-    { "path": "../../packages/runner-protocol" }
+    {
+      "path": "../../packages/config"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/openapi"
+    },
+    {
+      "path": "../../packages/manifest"
+    },
+    {
+      "path": "../../packages/compat"
+    },
+    {
+      "path": "../../packages/reports"
+    },
+    {
+      "path": "../../packages/mcp"
+    },
+    {
+      "path": "../../packages/runner-protocol"
+    }
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
   ]
 }

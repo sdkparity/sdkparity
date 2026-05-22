@@ -4,16 +4,43 @@
   "type": "module",
   "license": "Apache-2.0",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "bun test src",
-    "coverage": "bun test src --coverage --coverage-reporter=text"
+    "coverage": "bun test src --coverage --coverage-reporter=text",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@sdkparity/manifest": "file:../manifest",
+    "@sdkparity/manifest": "^0.1.0",
     "zod": "^4.1.13"
-  }
+  },
+  "description": "Compatibility diffing for SDK public surface manifests.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sdkparity/sdkparity.git",
+    "directory": "packages/compat"
+  },
+  "homepage": "https://github.com/sdkparity/sdkparity#readme",
+  "bugs": {
+    "url": "https://github.com/sdkparity/sdkparity/issues"
+  },
+  "keywords": [
+    "sdk",
+    "openapi",
+    "compatibility",
+    "api",
+    "agents"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }
