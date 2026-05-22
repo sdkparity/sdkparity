@@ -27,24 +27,20 @@ export function inferManifestCapabilities(
   symbols: readonly ManifestSymbol[],
   sourceFiles: readonly ManifestSourceFile[]
 ): ManifestCapability[] {
-  const sourceText = sourceFiles.map((file) => file.text).join("\n");
-  return CAPABILITIES.map((id) => capability(id, symbols, sourceFiles, sourceText));
+  return CAPABILITIES.map((id) => capability(id, symbols, sourceFiles));
 }
 
 function capability(
   id: SdkCapabilityId,
   symbols: readonly ManifestSymbol[],
-  sourceFiles: readonly ManifestSourceFile[],
-  sourceText: string
+  sourceFiles: readonly ManifestSourceFile[]
 ): ManifestCapability {
   const symbolMatches = symbols.filter((symbol) => matchesSymbol(id, symbol));
   const sourceMatches = sourceFiles
     .filter((file) => matchesSource(id, file.text))
     .map((file) => file.path);
-  const globalSourceMatch = matchesSource(id, sourceText);
   const evidence = [
     ...sourceMatches.slice(0, 4).map((path) => `source:${path}`),
-    ...(globalSourceMatch && sourceMatches.length === 0 ? ["source"] : []),
     ...symbolMatches.slice(0, 6).map((symbol) => `symbol:${symbol.id}`)
   ];
 
@@ -79,9 +75,9 @@ function matchesSymbol(id: SdkCapabilityId, symbol: ManifestSymbol): boolean {
     case "pagination.pages":
       return /Pages$|_pages$/.test(symbol.name);
     case "streaming":
-      return /AsyncIterable|Iterator\[|stream|sse|ndjson/i.test(normalized);
+      return /AsyncIterable|Iterator\[|ReadableStream|SSE|NDJSON/.test(normalized);
     case "typedErrors":
-      return symbol.kind === "class" && /Error$/.test(symbol.name);
+      return symbol.kind === "class" && /^(APIError|SDK[A-Za-z]*Error|[A-Za-z]*APIError|[A-Za-z]*ValidationError)$/.test(symbol.name);
     case "validation":
       return /ValidationError|validate|validation/i.test(normalized);
     case "webhooks":
@@ -100,7 +96,7 @@ function matchesSource(id: SdkCapabilityId, text: string): boolean {
     case "client.async":
       return /Promise<|AsyncIterable|async def |Async[A-Za-z]*Client/.test(text);
     case "client.sync":
-      return /class (?!Async)[A-Za-z]*Client\b/.test(text) && /(^|\n)\s*def [a-zA-Z_][A-Za-z0-9_]*\(/.test(text);
+      return hasPythonSyncClientMethod(text);
     case "resources":
       return /class [A-Za-z]+Resource\b|resources\//.test(text);
     case "rawResponses":
@@ -118,13 +114,16 @@ function matchesSource(id: SdkCapabilityId, text: string): boolean {
     case "hooks.retries":
       return /onRetry|on_retry|SDKRetryEvent/.test(text);
     case "typedErrors":
-      return /class [A-Za-z]+Error\b|extends APIError|\(APIError\)/.test(text);
+      return /class (?:APIError|SDK[A-Za-z]*Error|[A-Za-z]*APIError|[A-Za-z]*ValidationError)\b|extends APIError|\(APIError\)/.test(text);
     case "validation":
       return /ValidationError|strictRequestValidation|strict_response_validation|validate[A-Za-z_]*Data/.test(text);
     case "fileUploads":
-      return /multipart|Blob|File|UploadFile|bytes/.test(text) && /upload|file|multipart/i.test(text);
+      return /multipart\/form-data|FormData|\bBlob\b|\bFile\b|UploadFile|\bbytes\b/.test(text) && /upload|multipart/i.test(text);
     case "binaryDownloads":
-      return /ArrayBuffer|bytes/.test(text) && /download|binary|responseKind.*binary|response_kind.*binary/i.test(text);
+      return (
+        /ArrayBuffer|Uint8Array|\bbytes\b|ReadableStream/.test(text) &&
+        /download|responseKind\s*[:=]\s*["']binary["']|response_kind\s*=\s*["']binary["']|arrayBuffer\(|iter_bytes|application\/octet-stream/i.test(text)
+      );
     case "webhooks":
       return /webhook|verifySignature|unwrap/i.test(text);
   }
@@ -132,4 +131,34 @@ function matchesSource(id: SdkCapabilityId, text: string): boolean {
 
 function isTypeScriptSource(path: string): boolean {
   return /\.tsx?$/.test(path);
+}
+
+function hasPythonSyncClientMethod(text: string): boolean {
+  const lines = text.split(/\r?\n/);
+  let inClientClass = false;
+  let classIndent = 0;
+
+  for (const line of lines) {
+    if (line.trim() === "") {
+      continue;
+    }
+
+    const indent = line.match(/^\s*/)?.[0].length ?? 0;
+    const classMatch = line.match(/^\s*class (?!Async)[A-Za-z]*Client\b/);
+    if (classMatch) {
+      inClientClass = true;
+      classIndent = indent;
+      continue;
+    }
+
+    if (inClientClass && indent <= classIndent) {
+      inClientClass = false;
+    }
+
+    if (inClientClass && indent > classIndent && /^\s*def (?!__init__\b)[A-Za-z_][A-Za-z0-9_]*\(/.test(line)) {
+      return true;
+    }
+  }
+
+  return false;
 }

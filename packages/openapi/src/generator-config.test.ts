@@ -96,8 +96,14 @@ test("validates rich SDK generator config contracts", () => {
   expect(parsed.reliability?.backoff?.maxElapsedMs).toBe(60_000);
   expect(parsed.reliability?.operations?.createEvent?.backoff?.maxElapsedMs).toBe(30_000);
   expect(parsed.operations?.getHealth?.auth).toBe(false);
-  expect(parsed.operations?.listEvents?.auth && typeof parsed.operations.listEvents.auth === "object" ? parsed.operations.listEvents.auth.queryName : undefined).toBe("api_key");
-  expect(parsed.operations?.basicOnly?.auth && typeof parsed.operations.basicOnly.auth === "object" ? parsed.operations.basicOnly.auth.type : undefined).toBe("basic");
+  const listEventsAuth = parsed.operations?.listEvents?.auth;
+  const basicOnlyAuth = parsed.operations?.basicOnly?.auth;
+  expect(listEventsAuth && typeof listEventsAuth === "object" ? listEventsAuth.queryName : undefined).toBe(
+    "api_key"
+  );
+  expect(basicOnlyAuth && typeof basicOnlyAuth === "object" ? basicOnlyAuth.type : undefined).toBe(
+    "basic"
+  );
   expect(parsed.package?.homepage).toBe("https://sdkparity.example");
   expect(parsed.pagination?.listEvents?.strategy).toBe("cursor");
 });
@@ -112,4 +118,59 @@ test("rejects unsupported generator config keys", () => {
       unsupportedEndpoint: "https://example.invalid"
     })
   ).toThrow();
+});
+
+test("rejects retry backoff values that cannot be applied in order", () => {
+  expect(() =>
+    sdkGeneratorConfigSchema.parse({
+      input: "openapi.json",
+      output: "generated",
+      packageName: "bad-backoff",
+      targets: {},
+      reliability: {
+        backoff: {
+          initialDelayMs: 10_000,
+          maxDelayMs: 1_000,
+          maxElapsedMs: 60_000
+        }
+      }
+    })
+  ).toThrow(/initialDelayMs/);
+
+  expect(() =>
+    sdkGeneratorConfigSchema.parse({
+      input: "openapi.json",
+      output: "generated",
+      packageName: "bad-elapsed",
+      targets: {},
+      reliability: {
+        backoff: {
+          maxDelayMs: 60_000,
+          maxElapsedMs: 1_000
+        }
+      }
+    })
+  ).toThrow(/maxDelayMs/);
+});
+
+test("rejects auth fields that do not match the selected auth strategy", () => {
+  expect(() =>
+    sdkGeneratorConfigSchema.parse({
+      input: "openapi.json",
+      output: "generated",
+      packageName: "bad-auth",
+      targets: {},
+      auth: { type: "apiKey", in: "query", headerName: "X-Api-Key" }
+    })
+  ).toThrow(/headerName/);
+
+  expect(() =>
+    sdkGeneratorConfigSchema.parse({
+      input: "openapi.json",
+      output: "generated",
+      packageName: "bad-basic",
+      targets: {},
+      auth: { type: "bearer", usernameEnvName: "SDK_USERNAME", passwordEnvName: "SDK_PASSWORD" }
+    })
+  ).toThrow(/usernameEnvName/);
 });

@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 import { contentHash, SdkParityError } from "@sdkparity/core";
 import { z } from "zod";
@@ -128,20 +128,20 @@ async function discoverPythonSourceFiles(rootDir: string): Promise<string[]> {
   const files: string[] = [];
   const queue = [rootDir];
   const ignored = new Set([".git", ".turbo", "__pycache__", "build", "dist", ".venv", "venv"]);
+  const directory = new Bun.Glob("*");
 
   while (queue.length > 0) {
     const current = queue.shift();
     if (!current) {
       continue;
     }
-    const glob = new Bun.Glob("*");
-    for await (const entry of glob.scan({ cwd: current, onlyFiles: false, absolute: true })) {
+    for await (const entry of directory.scan({ cwd: current, onlyFiles: false, absolute: true })) {
       const base = basename(entry);
       if (ignored.has(base) || base.endsWith("_test.py") || base.startsWith("test_")) {
         continue;
       }
-      const stat = await Bun.file(entry).stat();
-      if (stat.isDirectory()) {
+      const entryStat = await stat(entry);
+      if (entryStat.isDirectory()) {
         queue.push(entry);
       } else if (entry.endsWith(".py")) {
         files.push(entry);

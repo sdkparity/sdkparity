@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 import ts from "typescript";
 import { contentHash, readJsonFile } from "@sdkparity/core";
@@ -209,20 +209,20 @@ async function discoverTypeScriptSourceFiles(rootDir: string): Promise<string[]>
   const files: string[] = [];
   const queue = [rootDir];
   const ignored = new Set(["node_modules", "dist", "build", ".git", ".turbo"]);
+  const directory = new Bun.Glob("*");
 
   while (queue.length > 0) {
     const current = queue.shift();
     if (!current) {
       continue;
     }
-    const directory = new Bun.Glob("*");
     for await (const entry of directory.scan({ cwd: current, onlyFiles: false, absolute: true })) {
       const base = basename(entry);
       if (ignored.has(base) || base.endsWith(".test.ts") || base.endsWith(".d.ts")) {
         continue;
       }
-      const stat = await Bun.file(entry).stat();
-      if (stat.isDirectory()) {
+      const entryStat = await stat(entry);
+      if (entryStat.isDirectory()) {
         queue.push(entry);
       } else if (entry.endsWith(".ts") || entry.endsWith(".tsx")) {
         files.push(entry);
